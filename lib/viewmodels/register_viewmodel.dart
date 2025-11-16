@@ -87,10 +87,10 @@ class RegisterViewModel with ChangeNotifier {
     try {
       // Simulación de verificación - puedes implementar una llamada real
       await Future.delayed(const Duration(seconds: 1));
-      _estadoServicio = 'Servicio Decolecta disponible';
+      _estadoServicio = 'Servicio Reniec disponible';
       notifyListeners();
     } catch (e) {
-      _estadoServicio = 'Servicio Decolecta no disponible';
+      _estadoServicio = 'Servicio Reniec no disponible';
       notifyListeners();
     }
   }

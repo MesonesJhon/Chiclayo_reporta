@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/app_colors.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -81,17 +82,6 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Container(
                     width: 140,
                     height: 140,
-                    // decoration: BoxDecoration(
-                    //   //color: AppColors.white,
-                    //   borderRadius: BorderRadius.circular(24),
-                    //   boxShadow: [
-                    //     // BoxShadow(
-                    //     //   color: Colors.black.withOpacity(0.2),
-                    //     //   blurRadius: 12,
-                    //     //   offset: const Offset(0, 4),
-                    //     // ),
-                    //   ],
-                    // ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: Image.asset(
@@ -102,9 +92,9 @@ class _SplashScreenState extends State<SplashScreen>
                         errorBuilder: (context, error, stackTrace) {
                           // Fallback si la imagen no existe
                           return Icon(
-                            Icons.warning_rounded,
+                            Icons.spoke_rounded,
                             size: 60,
-                            color: AppColors.chiclayoOrange,
+                            color: const Color.fromARGB(255, 242, 239, 238),
                           );
                         },
                       ),
@@ -143,19 +133,11 @@ class _SplashScreenState extends State<SplashScreen>
 
                 const SizedBox(height: 50),
 
-                // Loading indicator
+                // Loading indicator - Puntos saltando
                 FadeTransition(
                   opacity: _fadeAnimation,
-                  child: SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.chiclayoOrange,
-                      ),
-                      backgroundColor: AppColors.white.withOpacity(0.2),
-                    ),
+                  child: _JumpingDotsLoader(
+                    dotColor: const Color.fromARGB(255, 241, 240, 240),
                   ),
                 ),
               ],
@@ -211,5 +193,80 @@ class _SplashScreenState extends State<SplashScreen>
       // Si no hay usuario autenticado, ir al login
       Navigator.pushReplacementNamed(context, '/login');
     }
+  }
+}
+
+// Widget de puntos saltando
+class _JumpingDotsLoader extends StatefulWidget {
+  final Color dotColor;
+  final double dotSize;
+  final Duration duration;
+
+  const _JumpingDotsLoader({
+    this.dotColor = const Color.fromARGB(255, 241, 240, 240),
+    this.dotSize = 8.0,
+    this.duration = const Duration(milliseconds: 1200),
+  });
+
+  @override
+  State<_JumpingDotsLoader> createState() => __JumpingDotsLoaderState();
+}
+
+class __JumpingDotsLoaderState extends State<_JumpingDotsLoader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration)
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 60,
+      height: 20,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (index) {
+              final double animationValue = _controller.value;
+              // Cada punto tiene su propio timing (desfase de 0.2)
+              final double dotValue = (animationValue + index * 0.2) % 1.0;
+
+              // Función para el salto suave (usa curva seno)
+              final double translateY =
+                  -10.0 * math.sin(dotValue * 2 * math.pi);
+              final double scale = 1.0 + 0.3 * math.sin(dotValue * 2 * math.pi);
+
+              return Transform(
+                transform: Matrix4.identity()
+                  ..translate(0.0, translateY)
+                  ..scale(scale, scale),
+                child: Container(
+                  width: widget.dotSize,
+                  height: widget.dotSize,
+                  margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                  decoration: BoxDecoration(
+                    color: widget.dotColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
   }
 }
