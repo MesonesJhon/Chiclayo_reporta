@@ -538,7 +538,7 @@ class _HomeScreenState extends State<HomeScreen>
               gradient: LinearGradient(
                 colors: [AppColors.primaryBlue, AppColors.infoBlue],
               ),
-              onTap: () => _showCreateReportDialog(context),
+              onTap: () => Navigator.pushNamed(context, '/reporte'),
             ),
             _ActionCard(
               icon: Icons.list_alt_rounded,
@@ -548,9 +548,7 @@ class _HomeScreenState extends State<HomeScreen>
               gradient: LinearGradient(
                 colors: [AppColors.actionGreen, Colors.green],
               ),
-              onTap: () {
-                // Navegar a mis reportes
-              },
+               onTap: () => Navigator.pushNamed(context, '/mis_reportes'),
             ),
             _ActionCard(
               icon: Icons.map_rounded,

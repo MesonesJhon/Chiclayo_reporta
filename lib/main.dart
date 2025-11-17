@@ -57,7 +57,9 @@ import 'viewmodels/login_viewmodel.dart';
 import 'views/auth/login_screen.dart';
 import 'views/auth/register_screen.dart';
 import 'views/home/home_screen.dart';
+import 'views/home/reporte_screen.dart';
 import 'views/admin/admin_home_screen.dart';
+import 'views/home/mis_reportes_screen.dart';
 import 'views/splash_screen.dart'; // Asegúrate de importar el SplashScreen
 
 void main() async {
@@ -98,6 +100,8 @@ class MyApp extends StatelessWidget {
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
           '/admin': (context) => const AdminHomeScreen(),
+          '/reporte': (context) => const CreateReportScreen(), 
+          '/mis_reportes': (context) => const MyReportsScreen(),
         },
         debugShowCheckedModeBanner: false,
       ),
