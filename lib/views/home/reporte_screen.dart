@@ -92,7 +92,7 @@ class _CreateReportScreenState extends State<CreateReportScreen>
       title: FadeTransition(
         opacity: _fadeAnimation,
         child: const Text(
-          "EDITAR REPORTE",
+          "NUEVO REPORTE",
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
