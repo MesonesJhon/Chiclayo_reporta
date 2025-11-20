@@ -372,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen>
     AuthViewModel authViewModel,
     UserModel? user,
   ) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,7 +390,8 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 24),
 
           // Reportes recientes
-          Expanded(child: _buildRecentReports()),
+          _buildRecentReports(),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -538,7 +539,7 @@ class _HomeScreenState extends State<HomeScreen>
               gradient: LinearGradient(
                 colors: [AppColors.primaryBlue, AppColors.infoBlue],
               ),
-              onTap: () => Navigator.pushNamed(context, '/reporte'),
+              onTap: () => Navigator.pushNamed(context, '/nuevo_reporte'),
             ),
             _ActionCard(
               icon: Icons.list_alt_rounded,
@@ -548,7 +549,7 @@ class _HomeScreenState extends State<HomeScreen>
               gradient: LinearGradient(
                 colors: [AppColors.actionGreen, Colors.green],
               ),
-               onTap: () => Navigator.pushNamed(context, '/mis_reportes'),
+              onTap: () => Navigator.pushNamed(context, '/mis_reportes'),
             ),
             _ActionCard(
               icon: Icons.map_rounded,
@@ -581,6 +582,41 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildRecentReports() {
+    final reports = [
+      _ReportData(
+        'Bache en Av. Balta',
+        'Baches',
+        'En Proceso',
+        'Hace 2 días',
+        AppColors.warningYellow,
+        Icons.traffic_rounded,
+      ),
+      _ReportData(
+        'Alumbrado público dañado',
+        'Alumbrado',
+        'Pendiente',
+        'Hace 1 día',
+        AppColors.infoBlue,
+        Icons.lightbulb_rounded,
+      ),
+      _ReportData(
+        'Recolección de basura',
+        'Limpieza',
+        'Resuelto',
+        'Hace 3 días',
+        AppColors.actionGreen,
+        Icons.delete_rounded,
+      ),
+      _ReportData(
+        'Semáforo dañado',
+        'Tránsito',
+        'En Proceso',
+        'Hoy',
+        AppColors.warningYellow,
+        Icons.traffic_rounded,
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -608,47 +644,13 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
         const SizedBox(height: 16),
-        Expanded(
-          child: ListView.builder(
-            itemCount: 4,
-            itemBuilder: (context, index) {
-              final reports = [
-                _ReportData(
-                  'Bache en Av. Balta',
-                  'Baches',
-                  'En Proceso',
-                  'Hace 2 días',
-                  AppColors.warningYellow,
-                  Icons.traffic_rounded,
-                ),
-                _ReportData(
-                  'Alumbrado público dañado',
-                  'Alumbrado',
-                  'Pendiente',
-                  'Hace 1 día',
-                  AppColors.infoBlue,
-                  Icons.lightbulb_rounded,
-                ),
-                _ReportData(
-                  'Recolección de basura',
-                  'Limpieza',
-                  'Resuelto',
-                  'Hace 3 días',
-                  AppColors.actionGreen,
-                  Icons.delete_rounded,
-                ),
-                _ReportData(
-                  'Semáforo dañado',
-                  'Tránsito',
-                  'En Proceso',
-                  'Hoy',
-                  AppColors.warningYellow,
-                  Icons.traffic_rounded,
-                ),
-              ];
-              return _ReportItem(data: reports[index]);
-            },
-          ),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: reports.length,
+          itemBuilder: (context, index) {
+            return _ReportItem(data: reports[index]);
+          },
         ),
       ],
     );
@@ -791,64 +793,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _showCreateReportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppColors.chiclayoOrange.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.add_rounded,
-                    size: 30,
-                    color: AppColors.chiclayoOrange,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Nuevo Reporte',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Función de crear reporte en desarrollo...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Entendido'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    Navigator.pushNamed(context, '/nuevo_reporte');
   }
 
   void _showAboutDialog(BuildContext context) {

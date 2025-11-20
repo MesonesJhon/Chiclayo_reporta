@@ -41,8 +41,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navegar después de la animación
-    Future.delayed(const Duration(seconds: 3), () {
+    // Navegar después de la animación y login automático
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         _navigateToNextScreen(context);
       }
@@ -177,22 +177,28 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  void _navigateToNextScreen(BuildContext context) {
-    // Verificar si hay un usuario autenticado
+  void _navigateToNextScreen(BuildContext context) async {
+    // Intentar login automático si hay credenciales guardadas
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-    final user = authViewModel.currentUser;
 
-    if (user != null && authViewModel.isAuthenticated) {
-      // Si hay usuario autenticado, redirigir según su tipo usando el método helper
-      if (user.isAdmin) {
-        Navigator.pushReplacementNamed(context, '/admin');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
+    // Intentar login automático
+    final autoLoginSuccess = await authViewModel.autoLogin();
+
+    if (autoLoginSuccess && authViewModel.isAuthenticated) {
+      // Login automático exitoso
+      final user = authViewModel.currentUser;
+      if (user != null) {
+        if (user.isAdmin) {
+          Navigator.pushReplacementNamed(context, '/admin');
+        } else {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+        return;
       }
-    } else {
-      // Si no hay usuario autenticado, ir al login
-      Navigator.pushReplacementNamed(context, '/login');
     }
+
+    // Si no hay login automático o falló, ir al login
+    Navigator.pushReplacementNamed(context, '/login');
   }
 }
 

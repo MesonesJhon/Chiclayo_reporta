@@ -15,6 +15,11 @@ class ApiConstants {
   static const String authRegistro = '/api/auth/registro';
   static const String authLogin = '/api/auth/login';
   static const String authLogout = '/api/auth/logout';
+
+  // Endpoints de reportes
+  static const String reportesCrear = '/api/reportes/crear';
+  static const String reportesCategorias = '/api/categorias';
+  static const String reportesMisReportes = '/api/reportes/mis-reportes';
 }
 
 class AppConstants {

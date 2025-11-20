@@ -103,6 +103,21 @@ class AuthService {
 
       final Map<String, dynamic> data = json.decode(response.body);
 
+      // Debug: verificar la estructura del response
+      print('📥 Response del login - Status: ${response.statusCode}');
+      print('📥 Response body keys: ${data.keys}');
+      if (data['data'] != null && data['data'] is Map) {
+        print('📥 Data keys: ${(data['data'] as Map).keys}');
+        if ((data['data'] as Map).containsKey('token')) {
+          final token = (data['data'] as Map)['token'];
+          print(
+            '📥 Token encontrado en response: ${token.toString().substring(0, token.toString().length > 20 ? 20 : token.toString().length)}...',
+          );
+        } else {
+          print('❌ ERROR: Token no encontrado en data');
+        }
+      }
+
       if (response.statusCode == 200) {
         return AuthResponse.fromJson(data);
       } else {
@@ -144,7 +159,7 @@ class AuthService {
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'JWT $token',
+          'Authorization': 'Bearer $token',
         },
       );
     } catch (e) {

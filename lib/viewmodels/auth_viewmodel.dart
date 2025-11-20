@@ -37,10 +37,28 @@ class AuthViewModel with ChangeNotifier {
         _errorMessage = '';
 
         // Guardar token en SharedPreferences y configurar en ApiService
-        if (_token != null) {
-          await _saveAuthData();
-          // Configurar el token en ApiService para uso automático
+        if (_token != null && _token!.isNotEmpty) {
+          print(
+            '🔑 Token recibido del servidor: ${_token!.substring(0, _token!.length > 20 ? 20 : _token!.length)}...',
+          );
+
+          // Configurar el token en ApiService PRIMERO
           ApiService().setToken(_token!);
+
+          // Verificar que se configuró correctamente
+          if (ApiService().hasToken) {
+            print('✅ Token verificado en ApiService');
+          } else {
+            print('❌ ERROR: Token no se configuró correctamente en ApiService');
+          }
+
+          // Guardar token en SharedPreferences
+          await _saveAuthData();
+
+          // Guardar credenciales para login automático
+          await saveCredentials(dni, password);
+        } else {
+          print('❌ ERROR: Token es null o vacío');
         }
 
         notifyListeners();
@@ -54,6 +72,42 @@ class AuthViewModel with ChangeNotifier {
       _isLoading = false;
       _errorMessage = 'Error de conexión: $e';
       notifyListeners();
+      return false;
+    }
+  }
+
+  // Login automático con credenciales guardadas
+  Future<bool> autoLogin() async {
+    try {
+      final credentials = await getSavedCredentials();
+      if (credentials == null) {
+        print('ℹ️ No hay credenciales guardadas para login automático');
+        return false;
+      }
+
+      print('🔄 Intentando login automático con DNI: ${credentials['dni']}');
+      final success = await login(
+        credentials['dni']!,
+        credentials['password']!,
+      );
+
+      if (success) {
+        print('✅ Login automático exitoso');
+        // Verificar que el token esté configurado
+        if (ApiService().hasToken) {
+          print('✅ Token disponible después del login automático');
+        } else {
+          print(
+            '❌ ADVERTENCIA: Token no disponible después del login automático',
+          );
+        }
+      } else {
+        print('❌ Login automático falló: $_errorMessage');
+      }
+
+      return success;
+    } catch (e) {
+      print('❌ Error en login automático: $e');
       return false;
     }
   }
@@ -114,15 +168,21 @@ class AuthViewModel with ChangeNotifier {
   // Método para logout
   Future<void> logout() async {
     if (_token != null) {
-      await _authService.logout(_token!);
+      try {
+        await _authService.logout(_token!);
+      } catch (e) {
+        print('Error en logout del servidor: $e');
+        // Continuar con el logout local aunque falle el servidor
+      }
     }
 
     _currentUser = null;
     _token = null;
     _errorMessage = '';
 
-    // Limpiar almacenamiento local y token de ApiService
+    // Limpiar almacenamiento local, token de ApiService y credenciales
     await _clearAuthData();
+    await clearSavedCredentials();
 
     notifyListeners();
   }
@@ -133,12 +193,54 @@ class AuthViewModel with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       if (_token != null) {
         await prefs.setString('auth_token', _token!);
+        print('Token guardado: ${_token!.substring(0, 20)}...'); // Debug
       }
       if (_currentUser != null) {
         await prefs.setString('auth_user', json.encode(_currentUser!.toJson()));
       }
     } catch (e) {
       print('Error guardando datos de autenticación: $e');
+    }
+  }
+
+  // Guardar credenciales para login automático
+  Future<void> saveCredentials(String dni, String password) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saved_dni', dni);
+      // NOTA: En producción, deberías encriptar la contraseña
+      // Por ahora la guardamos tal cual para login automático
+      await prefs.setString('saved_password', password);
+    } catch (e) {
+      print('Error guardando credenciales: $e');
+    }
+  }
+
+  // Obtener credenciales guardadas
+  Future<Map<String, String>?> getSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dni = prefs.getString('saved_dni');
+      final password = prefs.getString('saved_password');
+
+      if (dni != null && password != null) {
+        return {'dni': dni, 'password': password};
+      }
+      return null;
+    } catch (e) {
+      print('Error obteniendo credenciales: $e');
+      return null;
+    }
+  }
+
+  // Limpiar credenciales guardadas
+  Future<void> clearSavedCredentials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('saved_dni');
+      await prefs.remove('saved_password');
+    } catch (e) {
+      print('Error limpiando credenciales: $e');
     }
   }
 
@@ -155,21 +257,12 @@ class AuthViewModel with ChangeNotifier {
   }
 
   // Método para cargar datos de autenticación al iniciar la app
+  // NO carga el token, solo verifica si hay credenciales guardadas
   Future<void> loadAuthData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      final userJson = prefs.getString('auth_user');
-
-      if (token != null && userJson != null) {
-        _token = token;
-        _currentUser = UserModel.fromJson(json.decode(userJson));
-
-        // Configurar el token en ApiService para uso automático
-        ApiService().setToken(token);
-
-        notifyListeners();
-      }
+      // NO cargar token aquí - se hará login automático si hay credenciales
+      // Esto asegura que el token sea válido y reciente
+      print('loadAuthData: Verificando credenciales guardadas...');
     } catch (e) {
       print('Error cargando datos de autenticación: $e');
     }

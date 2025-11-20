@@ -8,7 +8,7 @@ class UserModel {
   final String? email;
   final String? telefono;
   final String tipo;
-  final DateTime fechaRegistro;
+  final DateTime? fechaRegistro;
   final DateTime? ultimoLogin;
 
   UserModel({
@@ -21,7 +21,7 @@ class UserModel {
     this.email,
     this.telefono,
     required this.tipo,
-    required this.fechaRegistro,
+    this.fechaRegistro,
     this.ultimoLogin,
   });
 
@@ -36,13 +36,68 @@ class UserModel {
       email: json['email'] as String?,
       telefono: json['telefono'] as String?,
       tipo: json['tipo'] as String? ?? 'ciudadano',
-      fechaRegistro: json['fecha_registro'] != null
-          ? DateTime.parse(json['fecha_registro'] as String)
-          : DateTime.now(),
-      ultimoLogin: json['ultimo_login'] != null
-          ? DateTime.parse(json['ultimo_login'] as String)
-          : null,
+      fechaRegistro: _parseDateTime(json['fecha_registro']),
+      ultimoLogin: _parseDateTime(json['ultimo_login']),
     );
+  }
+
+  /// Función auxiliar para parsear fechas en diferentes formatos
+  static DateTime? _parseDateTime(dynamic dateValue) {
+    if (dateValue == null) return null;
+
+    try {
+      final dateString = dateValue.toString();
+
+      // Intentar parsear como ISO 8601 primero
+      try {
+        return DateTime.parse(dateString);
+      } catch (e) {
+        // Si falla, intentar parsear formato HTTP (RFC 7231)
+        // Ejemplo: "Sat, 15 Nov 2025 19:20:11 GMT"
+        if (dateString.contains('GMT') || dateString.contains('UTC')) {
+          // Reemplazar nombres de días y zonas horarias comunes
+          String cleaned = dateString
+              .replaceAll(RegExp(r'^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s*'), '')
+              .replaceAll(' GMT', '')
+              .replaceAll(' UTC', '');
+
+          // Mapear nombres de meses
+          final monthMap = {
+            'Jan': '01',
+            'Feb': '02',
+            'Mar': '03',
+            'Apr': '04',
+            'May': '05',
+            'Jun': '06',
+            'Jul': '07',
+            'Aug': '08',
+            'Sep': '09',
+            'Oct': '10',
+            'Nov': '11',
+            'Dec': '12',
+          };
+
+          // Formato esperado: "15 Nov 2025 19:20:11"
+          final parts = cleaned.split(' ');
+          if (parts.length >= 4) {
+            final day = parts[0].padLeft(2, '0');
+            final month = monthMap[parts[1]] ?? '01';
+            final year = parts[2];
+            final time = parts.length > 3 ? parts[3] : '00:00:00';
+
+            final isoString = '$year-$month-$day $time';
+            return DateTime.parse(isoString);
+          }
+        }
+
+        // Si todo falla, retornar null
+        print('⚠️ No se pudo parsear la fecha: $dateString');
+        return null;
+      }
+    } catch (e) {
+      print('⚠️ Error parseando fecha: $e');
+      return null;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -56,7 +111,7 @@ class UserModel {
       'email': email,
       'telefono': telefono,
       'tipo': tipo,
-      'fecha_registro': fechaRegistro.toIso8601String(),
+      'fecha_registro': fechaRegistro?.toIso8601String(),
       'ultimo_login': ultimoLogin?.toIso8601String(),
     };
   }

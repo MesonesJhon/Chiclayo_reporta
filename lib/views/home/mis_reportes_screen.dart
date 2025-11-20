@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../viewmodels/auth_viewmodel.dart';
-import '../../models/user_model.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../viewmodels/mis_reportes_viewmodel.dart';
+import '../../models/reporte_model.dart';
+import '../../models/archivo_multimedia_model.dart';
 import '../../utils/app_colors.dart';
+import '../widgets/report_location_map.dart';
 
 class MyReportsScreen extends StatefulWidget {
   const MyReportsScreen({super.key});
@@ -17,43 +20,12 @@ class _MyReportsScreenState extends State<MyReportsScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
 
-  String _selectedFilter = 'Todos';
   final List<String> _filters = ['Todos', 'Activos', 'Resueltos', 'Pendientes'];
-
-  final List<Report> _reports = [
-    Report(
-      id: '1234',
-      title: 'Basura acumulada',
-      status: 'Cerrado',
-      date: '03/01/2023',
-      zone: 'Balta',
-      statusColor: AppColors.actionGreen,
-      statusIcon: Icons.check_circle_rounded,
-    ),
-    Report(
-      id: '1235',
-      title: 'Poste dañado',
-      status: 'En Proceso',
-      date: '07/01/2023',
-      zone: 'Chiclayo Centro',
-      statusColor: AppColors.warningYellow,
-      statusIcon: Icons.pending_actions_rounded,
-    ),
-    Report(
-      id: '1236',
-      title: 'Desmonte',
-      status: 'Recibido',
-      date: '08/01/2023',
-      zone: 'Pimentel',
-      statusColor: AppColors.infoBlue,
-      statusIcon: Icons.schedule_rounded,
-    ),
-  ];
 
   @override
   void initState() {
     super.initState();
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -74,6 +46,11 @@ class _MyReportsScreenState extends State<MyReportsScreen>
     );
 
     _animationController.forward();
+
+    // Cargar reportes al iniciar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MisReportesViewModel>().cargarReportes();
+    });
   }
 
   @override
@@ -84,9 +61,6 @@ class _MyReportsScreenState extends State<MyReportsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel = Provider.of<AuthViewModel>(context);
-    final user = authViewModel.currentUser;
-
     return Scaffold(
       backgroundColor: AppColors.backgroundWhite,
       appBar: _buildAppBar(context),
@@ -147,9 +121,7 @@ class _MyReportsScreenState extends State<MyReportsScreen>
           const SizedBox(height: 24),
 
           // Lista de reportes
-          Expanded(
-            child: _buildReportsList(),
-          ),
+          Expanded(child: _buildReportsList()),
         ],
       ),
     );
@@ -198,11 +170,17 @@ class _MyReportsScreenState extends State<MyReportsScreen>
             ),
             child: TextField(
               decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: InputBorder.none,
                 hintText: 'Ej: #1234 o 03/01/2023',
                 hintStyle: TextStyle(color: Colors.grey[600]),
-                suffixIcon: Icon(Icons.search_rounded, color: AppColors.primaryBlue),
+                suffixIcon: Icon(
+                  Icons.search_rounded,
+                  color: AppColors.primaryBlue,
+                ),
               ),
             ),
           ),
@@ -229,27 +207,36 @@ class _MyReportsScreenState extends State<MyReportsScreen>
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade300),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedFilter,
-                    icon: Icon(Icons.arrow_drop_down_rounded, color: AppColors.primaryBlue),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedFilter = newValue!;
-                      });
-                    },
-                    items: _filters.map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
+                child: Consumer<MisReportesViewModel>(
+                  builder: (context, viewModel, child) {
+                    return DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: viewModel.filtro,
+                        icon: Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: AppColors.primaryBlue,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            viewModel.setFiltro(newValue);
+                          }
+                        },
+                        items: _filters.map<DropdownMenuItem<String>>((
+                          String value,
+                        ) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -260,73 +247,133 @@ class _MyReportsScreenState extends State<MyReportsScreen>
   }
 
   Widget _buildReportsList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return Consumer<MisReportesViewModel>(
+      builder: (context, viewModel, child) {
+        if (viewModel.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (viewModel.error.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  viewModel.error,
+                  style: TextStyle(color: Colors.red[700]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => viewModel.cargarReportes(),
+                  child: const Text('Reintentar'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final reports = viewModel.reportesFiltrados;
+
+        if (reports.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  "No tienes reportes todavía.",
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.list_alt_rounded,
-              color: AppColors.primaryBlue,
-              size: 20,
+            Row(
+              children: [
+                Icon(
+                  Icons.list_alt_rounded,
+                  color: AppColors.primaryBlue,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Mis Reportes',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Text(
+                  '${reports.length} reportes',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            const Text(
-              'Mis Reportes',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const Spacer(),
-            Text(
-              '${_reports.length} reportes',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: reports.length,
+                itemBuilder: (context, index) {
+                  return _ReporteCard(reporte: reports[index]);
+                },
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: ListView.builder(
-            itemCount: _reports.length,
-            itemBuilder: (context, index) {
-              return _ReportCard(report: _reports[index]);
-            },
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
-class Report {
-  final String id;
-  final String title;
-  final String status;
-  final String date;
-  final String zone;
-  final Color statusColor;
-  final IconData statusIcon;
+class _ReporteCard extends StatelessWidget {
+  final ReporteModel reporte;
 
-  Report({
-    required this.id,
-    required this.title,
-    required this.status,
-    required this.date,
-    required this.zone,
-    required this.statusColor,
-    required this.statusIcon,
-  });
-}
-
-class _ReportCard extends StatelessWidget {
-  final Report report;
-
-  const _ReportCard({required this.report});
+  const _ReporteCard({required this.reporte});
 
   @override
   Widget build(BuildContext context) {
+    ArchivoMultimediaModel? archivoPrincipal;
+    try {
+      archivoPrincipal = reporte.archivos.firstWhere((a) => a.esPrincipal);
+    } catch (e) {
+      if (reporte.archivos.isNotEmpty) {
+        archivoPrincipal = reporte.archivos.first;
+      }
+    }
+
+    final urlImagen = archivoPrincipal?.url;
+
+    // Determinar color del estado
+    Color estadoColor;
+    IconData estadoIcon;
+    switch (reporte.estado.toLowerCase()) {
+      case 'resuelto':
+        estadoColor = AppColors.actionGreen;
+        estadoIcon = Icons.check_circle_rounded;
+        break;
+      case 'en_proceso':
+        estadoColor = AppColors.warningYellow;
+        estadoIcon = Icons.pending_actions_rounded;
+        break;
+      case 'pendiente':
+        estadoColor = AppColors.infoBlue;
+        estadoIcon = Icons.schedule_rounded;
+        break;
+      default:
+        estadoColor = Colors.grey;
+        estadoIcon = Icons.help_outline_rounded;
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
@@ -336,17 +383,20 @@ class _ReportCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header con ID y título
+            // ID y título
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryBlue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '#${report.id}',
+                    "#${reporte.id ?? reporte.codigoSeguimiento}",
                     style: TextStyle(
                       color: AppColors.primaryBlue,
                       fontSize: 12,
@@ -357,7 +407,7 @@ class _ReportCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    report.title,
+                    reporte.titulo,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -370,39 +420,53 @@ class _ReportCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Estado
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: report.statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        report.statusIcon,
-                        color: report.statusColor,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        report.status,
-                        style: TextStyle(
-                          color: report.statusColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+            // Imagen
+            if (urlImagen != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  urlImagen,
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 150,
+                      color: Colors.grey[200],
+                      child: Icon(Icons.broken_image, color: Colors.grey[400]),
+                    );
+                  },
                 ),
-              ],
+              ),
+
+            if (urlImagen != null) const SizedBox(height: 12),
+
+            // Estado
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: estadoColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(estadoIcon, color: estadoColor, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    reporte.estado.toUpperCase(),
+                    style: TextStyle(
+                      color: estadoColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
 
-            // Fecha y zona
+            // Fecha y ubicación
             Row(
               children: [
                 Icon(
@@ -412,7 +476,9 @@ class _ReportCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  report.date,
+                  reporte.fechaCreacion != null
+                      ? reporte.fechaCreacion!.toString().substring(0, 10)
+                      : 'Sin fecha',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
@@ -426,12 +492,16 @@ class _ReportCard extends StatelessWidget {
                   size: 14,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  'Zona: ${report.zone}',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    reporte.ubicacion?.direccion ?? "Sin dirección",
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -441,9 +511,10 @@ class _ReportCard extends StatelessWidget {
             // Botones de acción
             Row(
               children: [
+                // Ver fotos
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _showPhotosDialog(context, report),
+                    onPressed: () => _openMultimediaGallery(context, reporte),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryBlue,
                       side: BorderSide(color: AppColors.primaryBlue),
@@ -452,17 +523,37 @@ class _ReportCard extends StatelessWidget {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
-                    icon: const Icon(Icons.photo_library_rounded, size: 16),
+                    icon: const Icon(Icons.collections_rounded, size: 16),
                     label: const Text(
-                      'Ver fotos',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      'Multimedia',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
+                // Ver mapa
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _showMapDialog(context, report),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ReportLocationMap(
+                            reportId:
+                                reporte.id?.toString() ??
+                                reporte.codigoSeguimiento,
+                            reportTitle: reporte.titulo,
+                            zone: reporte.ubicacion?.distrito,
+                            direccion: reporte.ubicacion?.direccion,
+                            latitude: reporte.ubicacion?.latitud,
+                            longitude: reporte.ubicacion?.longitud,
+                          ),
+                        ),
+                      );
+                    },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.chiclayoOrange,
                       side: BorderSide(color: AppColors.chiclayoOrange),
@@ -473,8 +564,11 @@ class _ReportCard extends StatelessWidget {
                     ),
                     icon: const Icon(Icons.map_rounded, size: 16),
                     label: const Text(
-                      'Ver mapa',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      'Mapa',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -486,125 +580,245 @@ class _ReportCard extends StatelessWidget {
     );
   }
 
-  void _showPhotosDialog(BuildContext context, Report report) {
-    showDialog(
+  void _openMultimediaGallery(BuildContext context, ReporteModel reporte) {
+    if (reporte.archivos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este reporte no tiene archivos aún')),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ReporteMultimediaViewer(reporte: reporte),
+    );
+  }
+}
+
+class _ReporteMultimediaViewer extends StatefulWidget {
+  final ReporteModel reporte;
+
+  const _ReporteMultimediaViewer({required this.reporte});
+
+  @override
+  State<_ReporteMultimediaViewer> createState() =>
+      _ReporteMultimediaViewerState();
+}
+
+class _ReporteMultimediaViewerState extends State<_ReporteMultimediaViewer> {
+  late final PageController _pageController;
+  int _currentIndex = 0;
+
+  List<ArchivoMultimediaModel> get _archivos => widget.reporte.archivos;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  bool _isVideo(ArchivoMultimediaModel archivo) {
+    final type = archivo.mimeType ?? archivo.tipo;
+    return type.toLowerCase().contains('video');
+  }
+
+  Future<void> _openExternal(String url) async {
+    final uri = Uri.parse(url);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo abrir el archivo'),
+          backgroundColor: AppColors.criticalRed,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height * 0.8;
+
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            height: 5,
+            width: 60,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(50),
+            ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 16),
+          Text(
+            'Archivos - #${widget.reporte.id ?? widget.reporte.codigoSeguimiento}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_archivos.length} ${_archivos.length == 1 ? 'archivo' : 'archivos'}',
+            style: const TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _archivos.length,
+              onPageChanged: (index) => setState(() {
+                _currentIndex = index;
+              }),
+              itemBuilder: (context, index) {
+                final archivo = _archivos[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _isVideo(archivo)
+                      ? _buildVideoPreview(archivo)
+                      : _buildImagePreview(archivo),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              _archivos.length,
+              (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: _currentIndex == i ? 24 : 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: _currentIndex == i
+                      ? AppColors.primaryBlue
+                      : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
               children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.photo_library_rounded,
-                    size: 30,
-                    color: AppColors.primaryBlue,
+                const Icon(Icons.insert_drive_file, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _archivos[_currentIndex].nombre,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(width: 8),
                 Text(
-                  'Fotos - #${report.id}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Galería de imágenes del reporte',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Cerrar'),
-                  ),
+                  _archivos[_currentIndex].mimeType ?? '',
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
           ),
-        );
-      },
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
-  void _showMapDialog(BuildContext context, Report report) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildImagePreview(ArchivoMultimediaModel archivo) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: InteractiveViewer(
+        child: Image.network(
+          archivo.url,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!
+                    : null,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: Colors.grey[200],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, color: Colors.grey[500]),
+                  const SizedBox(height: 8),
+                  const Text('No se pudo cargar la imagen'),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview(ArchivoMultimediaModel archivo) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.black,
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.play_circle_fill_rounded,
+            color: Colors.white,
+            size: 72,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppColors.chiclayoOrange.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.map_rounded,
-                    size: 30,
-                    color: AppColors.chiclayoOrange,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Ubicación - #${report.id}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Zona: ${report.zone}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey, fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.chiclayoOrange,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Cerrar'),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 16),
+          Text(
+            archivo.nombre,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Tipo: ${archivo.mimeType ?? archivo.tipo}',
+            style: TextStyle(color: Colors.grey[300]),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => _openExternal(archivo.url),
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('Reproducir video'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primaryBlue,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
