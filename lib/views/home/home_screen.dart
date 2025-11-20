@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/mis_reportes_viewmodel.dart';
 import '../../models/user_model.dart';
+import '../../models/reporte_model.dart';
 import '../../utils/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,6 +43,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
 
     _animationController.forward();
+
+    // Cargar reportes al iniciar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MisReportesViewModel>().cargarReportes();
+    });
   }
 
   @override
@@ -238,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen>
                     color: AppColors.chiclayoOrange,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a mapa
+                      Navigator.pushNamed(context, '/mapa_reportes');
                     },
                   ),
                   _buildDrawerItem(
@@ -452,62 +459,85 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildQuickStats() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.insights_rounded,
-                color: AppColors.primaryBlue,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Mi Resumen',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    return Consumer<MisReportesViewModel>(
+      builder: (context, viewModel, child) {
+        final reportes = viewModel.reportes;
+
+        // Calcular estadísticas reales
+        final activos = reportes
+            .where((r) => r.estado != 'resuelto' && r.estado != 'cancelado')
+            .length;
+        final resueltos = reportes.where((r) => r.estado == 'resuelto').length;
+        final pendientes = reportes
+            .where((r) => r.estado == 'pendiente')
+            .length;
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _StatItem(
-                value: '5',
-                label: 'Activos',
-                color: AppColors.warningYellow,
-                icon: Icons.pending_actions_rounded,
+              Row(
+                children: [
+                  Icon(
+                    Icons.insights_rounded,
+                    color: AppColors.primaryBlue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Mi Resumen',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  if (viewModel.isLoading) ...[
+                    const SizedBox(width: 8),
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ],
+                ],
               ),
-              _StatItem(
-                value: '12',
-                label: 'Resueltos',
-                color: AppColors.actionGreen,
-                icon: Icons.check_circle_rounded,
-              ),
-              _StatItem(
-                value: '3',
-                label: 'Pendientes',
-                color: AppColors.infoBlue,
-                icon: Icons.schedule_rounded,
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _StatItem(
+                    value: activos.toString(),
+                    label: 'Activos',
+                    color: AppColors.warningYellow,
+                    icon: Icons.pending_actions_rounded,
+                  ),
+                  _StatItem(
+                    value: resueltos.toString(),
+                    label: 'Resueltos',
+                    color: AppColors.actionGreen,
+                    icon: Icons.check_circle_rounded,
+                  ),
+                  _StatItem(
+                    value: pendientes.toString(),
+                    label: 'Pendientes',
+                    color: AppColors.infoBlue,
+                    icon: Icons.schedule_rounded,
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -557,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen>
                 colors: [AppColors.chiclayoOrange, Colors.orange],
               ),
               onTap: () {
-                // Navegar a mapa
+                Navigator.pushNamed(context, '/mapa_reportes');
               },
             ),
             _ActionCard(
@@ -579,77 +609,98 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildRecentReports() {
-    final reports = [
-      _ReportData(
-        'Bache en Av. Balta',
-        'Baches',
-        'En Proceso',
-        'Hace 2 días',
-        AppColors.warningYellow,
-        Icons.traffic_rounded,
-      ),
-      _ReportData(
-        'Alumbrado público dañado',
-        'Alumbrado',
-        'Pendiente',
-        'Hace 1 día',
-        AppColors.infoBlue,
-        Icons.lightbulb_rounded,
-      ),
-      _ReportData(
-        'Recolección de basura',
-        'Limpieza',
-        'Resuelto',
-        'Hace 3 días',
-        AppColors.actionGreen,
-        Icons.delete_rounded,
-      ),
-      _ReportData(
-        'Semáforo dañado',
-        'Tránsito',
-        'En Proceso',
-        'Hoy',
-        AppColors.warningYellow,
-        Icons.traffic_rounded,
-      ),
-    ];
+    return Consumer<MisReportesViewModel>(
+      builder: (context, viewModel, child) {
+        // Obtener los 4 reportes más recientes
+        final reportesList = List<ReporteModel>.from(viewModel.reportes);
+        reportesList.sort((a, b) {
+          final fechaA = a.fechaCreacion ?? DateTime(1970);
+          final fechaB = b.fechaCreacion ?? DateTime(1970);
+          return fechaB.compareTo(fechaA);
+        });
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+        final reportesMostrar = reportesList.take(4).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.history_rounded, color: AppColors.primaryBlue, size: 20),
-            const SizedBox(width: 8),
-            const Text(
-              'Reportes Recientes',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () {
-                // Ver todos los reportes
-              },
-              child: Text(
-                'Ver todos',
-                style: TextStyle(
+            Row(
+              children: [
+                Icon(
+                  Icons.history_rounded,
                   color: AppColors.primaryBlue,
-                  fontWeight: FontWeight.w600,
+                  size: 20,
                 ),
-              ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Reportes Recientes',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/mis_reportes');
+                  },
+                  child: Text(
+                    'Ver todos',
+                    style: TextStyle(
+                      color: AppColors.primaryBlue,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
+            if (viewModel.isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (reportesMostrar.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.inbox_rounded,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No tienes reportes aún',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/nuevo_reporte');
+                      },
+                      child: const Text('Crear primer reporte'),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: reportesMostrar.length,
+                itemBuilder: (context, index) {
+                  final reporte = reportesMostrar[index];
+                  return _ReportItemFromModel(reporte: reporte);
+                },
+              ),
           ],
-        ),
-        const SizedBox(height: 16),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: reports.length,
-          itemBuilder: (context, index) {
-            return _ReportItem(data: reports[index]);
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -974,112 +1025,175 @@ class _ActionCard extends StatelessWidget {
   }
 }
 
-class _ReportData {
-  final String title;
-  final String category;
-  final String status;
-  final String date;
-  final Color statusColor;
-  final IconData icon;
+class _ReportItemFromModel extends StatelessWidget {
+  final ReporteModel reporte;
 
-  _ReportData(
-    this.title,
-    this.category,
-    this.status,
-    this.date,
-    this.statusColor,
-    this.icon,
-  );
-}
+  const _ReportItemFromModel({required this.reporte});
 
-class _ReportItem extends StatelessWidget {
-  final _ReportData data;
+  Color _getEstadoColor(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'resuelto':
+        return AppColors.actionGreen;
+      case 'en_proceso':
+        return AppColors.warningYellow;
+      case 'pendiente':
+        return AppColors.infoBlue;
+      case 'cancelado':
+        return AppColors.criticalRed;
+      default:
+        return Colors.grey;
+    }
+  }
 
-  const _ReportItem({required this.data});
+  String _getEstadoLabel(String estado) {
+    switch (estado.toLowerCase()) {
+      case 'pendiente':
+        return 'Pendiente';
+      case 'en_proceso':
+        return 'En Proceso';
+      case 'resuelto':
+        return 'Resuelto';
+      case 'cancelado':
+        return 'Cancelado';
+      default:
+        return estado;
+    }
+  }
+
+  IconData _getCategoriaIcon(ReporteModel reporte) {
+    // Usar el icono de la categoría si está disponible
+    // Por defecto, usar iconos genéricos según el estado
+    final estado = reporte.estado.toLowerCase();
+    if (estado == 'resuelto') {
+      return Icons.check_circle_rounded;
+    } else if (estado == 'en_proceso') {
+      return Icons.pending_actions_rounded;
+    } else {
+      return Icons.access_time_filled;
+    }
+  }
+
+  String _formatearFechaRelativa(DateTime? fecha) {
+    if (fecha == null) return 'Sin fecha';
+
+    final ahora = DateTime.now();
+    final diferencia = ahora.difference(fecha);
+
+    if (diferencia.inDays == 0) {
+      if (diferencia.inHours == 0) {
+        if (diferencia.inMinutes == 0) {
+          return 'Hace un momento';
+        }
+        return 'Hace ${diferencia.inMinutes} ${diferencia.inMinutes == 1 ? 'minuto' : 'minutos'}';
+      }
+      return 'Hace ${diferencia.inHours} ${diferencia.inHours == 1 ? 'hora' : 'horas'}';
+    } else if (diferencia.inDays == 1) {
+      return 'Hace 1 día';
+    } else if (diferencia.inDays < 7) {
+      return 'Hace ${diferencia.inDays} días';
+    } else if (diferencia.inDays < 30) {
+      final semanas = (diferencia.inDays / 7).floor();
+      return 'Hace $semanas ${semanas == 1 ? 'semana' : 'semanas'}';
+    } else {
+      return '${fecha.day}/${fecha.month}/${fecha.year}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final estadoColor = _getEstadoColor(reporte.estado);
+    final estadoLabel = _getEstadoLabel(reporte.estado);
+    final categoriaNombre = reporte.categoria?.nombre ?? 'Sin categoría';
+    final fechaTexto = _formatearFechaRelativa(reporte.fechaCreacion);
+    final icono = _getCategoriaIcon(reporte);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: data.statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(context, '/mis_reportes');
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: estadoColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icono, color: estadoColor, size: 20),
               ),
-              child: Icon(data.icon, color: data.statusColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      reporte.titulo,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          data.category,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            categoriaNombre,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: data.statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          data.status,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: data.statusColor,
-                            fontWeight: FontWeight.bold,
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: estadoColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            estadoLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: estadoColor,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    data.date,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      fechaTexto,
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

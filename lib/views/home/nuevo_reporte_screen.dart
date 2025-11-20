@@ -216,10 +216,15 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
   ) {
     final seleccionada = viewModel.categoriaSeleccionada;
     if (seleccionada == null) return null;
-    final existe = viewModel.categorias.any(
-      (categoria) => categoria.id == seleccionada.id,
-    );
-    return existe ? seleccionada : null;
+    // Buscar la instancia de la lista que coincida con el ID
+    // Esto es necesario porque las instancias pueden ser diferentes objetos
+    try {
+      return viewModel.categorias.firstWhere(
+        (categoria) => categoria.id == seleccionada.id,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _buildTituloSection(NuevoReporteViewModel viewModel) {

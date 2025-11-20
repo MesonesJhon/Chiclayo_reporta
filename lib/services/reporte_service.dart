@@ -281,4 +281,68 @@ class ReporteService {
       return ApiResponse.error('Error de conexión: ${e.toString()}');
     }
   }
+
+  /// Obtener todos los reportes públicos
+  Future<ApiResponse<List<ReporteModel>>> obtenerReportesPublicos() async {
+    try {
+      final response = await _apiService.get(ApiConstants.reportesPublicos);
+
+      print('Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.body.isEmpty) {
+        return ApiResponse.error(
+          'Respuesta vacía del servidor',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        if (data['data'] != null && data['data'] is List) {
+          try {
+            final reportesList = (data['data'] as List)
+                .map((item) {
+                  try {
+                    return ReporteModel.fromJson(item as Map<String, dynamic>);
+                  } catch (e) {
+                    print('Error parseando reporte: $e');
+                    return null;
+                  }
+                })
+                .whereType<ReporteModel>()
+                .toList();
+
+            return ApiResponse.success(
+              reportesList,
+              message: data['message'] as String? ?? '',
+            );
+          } catch (e) {
+            return ApiResponse.error(
+              'Error al procesar los reportes: $e',
+              statusCode: response.statusCode,
+            );
+          }
+        } else {
+          return ApiResponse.error(
+            'Formato de respuesta inválido',
+            statusCode: response.statusCode,
+          );
+        }
+      } else {
+        final errorMsg =
+            data['message'] as String? ??
+            'Error al obtener reportes (Status: ${response.statusCode})';
+        print('Error en respuesta: $errorMsg');
+        return ApiResponse.error(errorMsg, statusCode: response.statusCode);
+      }
+    } on FormatException catch (e) {
+      print('FormatException: $e');
+      return ApiResponse.error('Error al procesar la respuesta: $e');
+    } catch (e) {
+      print('Error obteniendo reportes públicos: $e');
+      return ApiResponse.error('Error de conexión: ${e.toString()}');
+    }
+  }
 }

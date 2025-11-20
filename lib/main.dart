@@ -56,6 +56,7 @@ import 'viewmodels/register_viewmodel.dart';
 import 'viewmodels/login_viewmodel.dart';
 import 'viewmodels/nuevo_reporte_viewmodel.dart';
 import 'viewmodels/mis_reportes_viewmodel.dart';
+import 'viewmodels/reportes_publicos_viewmodel.dart';
 import 'views/auth/login_screen.dart';
 import 'views/auth/register_screen.dart';
 import 'views/home/home_screen.dart';
@@ -63,6 +64,7 @@ import 'views/home/reporte_screen.dart';
 import 'views/home/nuevo_reporte_screen.dart';
 import 'views/admin/admin_home_screen.dart';
 import 'views/home/mis_reportes_screen.dart';
+import 'views/home/mapa_reportes_publicos_screen.dart';
 import 'views/splash_screen.dart';
 import 'views/home/settings_screen.dart';
 
@@ -129,6 +131,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider(create: (_) => LoginViewModel()),
         ChangeNotifierProvider(create: (_) => NuevoReporteViewModel()),
         ChangeNotifierProvider(create: (_) => MisReportesViewModel()),
+        ChangeNotifierProvider(create: (_) => ReportesPublicosViewModel()),
       ],
       child: MaterialApp(
         title: 'Reportes Ciudadanos MPCh',
@@ -147,6 +150,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           '/reporte': (context) => const CreateReportScreen(),
           '/nuevo_reporte': (context) => const NuevoReporteScreen(),
           '/mis_reportes': (context) => const MyReportsScreen(),
+          '/mapa_reportes': (context) => const MapaReportesPublicosScreen(),
           '/settings': (context) => const SettingsScreen(),
         },
         debugShowCheckedModeBanner: false,

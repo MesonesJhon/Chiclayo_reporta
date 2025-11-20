@@ -838,28 +838,6 @@ class _ReporteMultimediaViewerState extends State<_ReporteMultimediaViewer> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const Icon(Icons.insert_drive_file, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _archivos[_currentIndex].nombre,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _archivos[_currentIndex].mimeType ?? '',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 20),
         ],
       ),
