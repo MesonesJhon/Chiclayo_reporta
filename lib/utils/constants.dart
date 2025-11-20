@@ -20,6 +20,8 @@ class ApiConstants {
   static const String reportesCrear = '/api/reportes/crear';
   static const String reportesCategorias = '/api/categorias';
   static const String reportesMisReportes = '/api/reportes/mis-reportes';
+  static const String reportesEditar = '/api/reportes/editar';
+  static const String reportesEliminar = '/api/reportes/delete';
 }
 
 class AppConstants {

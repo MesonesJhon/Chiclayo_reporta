@@ -255,10 +255,7 @@ class _HomeScreenState extends State<HomeScreen>
                     icon: Icons.settings_rounded,
                     title: 'Configuración',
                     color: Colors.grey,
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navegar a configuración
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/settings'),
                   ),
                   _buildDrawerItem(
                     icon: Icons.help_rounded,

@@ -4,11 +4,14 @@ import '../../viewmodels/nuevo_reporte_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../services/api_service.dart';
 import '../../models/categoria_model.dart';
+import '../../models/reporte_model.dart';
 import '../../utils/app_colors.dart';
 import '../widgets/seleccionar_ubicacion_map.dart';
 
 class NuevoReporteScreen extends StatefulWidget {
-  const NuevoReporteScreen({super.key});
+  final ReporteModel? reporteAEditar;
+
+  const NuevoReporteScreen({super.key, this.reporteAEditar});
 
   @override
   State<NuevoReporteScreen> createState() => _NuevoReporteScreenState();
@@ -25,6 +28,12 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     super.initState();
     // Cargar categorías al iniciar, pero asegurar que el token esté disponible
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final viewModel = context.read<NuevoReporteViewModel>();
+      if (widget.reporteAEditar == null) {
+        viewModel.prepararNuevoReporte();
+      } else {
+        viewModel.cargarDesdeReporte(widget.reporteAEditar!);
+      }
       // Verificar que el token esté disponible antes de cargar categorías
       final apiService = ApiService();
       if (!apiService.hasToken) {
@@ -70,12 +79,13 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<NuevoReporteViewModel>();
     return Scaffold(
       backgroundColor: AppColors.backgroundWhite,
       appBar: AppBar(
-        title: const Text(
-          'NUEVO REPORTE',
-          style: TextStyle(fontWeight: FontWeight.w900),
+        title: Text(
+          viewModel.esModoEdicion ? 'EDITAR REPORTE' : 'NUEVO REPORTE',
+          style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
@@ -87,9 +97,8 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Consumer<NuevoReporteViewModel>(
-        builder: (context, viewModel, child) {
-          // Sincronizar controladores con el ViewModel
+      body: Builder(
+        builder: (context) {
           if (_tituloController.text != viewModel.titulo) {
             _tituloController.text = viewModel.titulo;
           }
@@ -183,7 +192,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
                 )
               : DropdownButtonHideUnderline(
                   child: DropdownButton<CategoriaModel>(
-                    value: viewModel.categoriaSeleccionada,
+                    value: _categoriaSeleccionadaValida(viewModel),
                     isExpanded: true,
                     hint: const Text('Selecciona una categoría'),
                     items: viewModel.categorias.map((categoria) {
@@ -200,6 +209,17 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
         ),
       ],
     );
+  }
+
+  CategoriaModel? _categoriaSeleccionadaValida(
+    NuevoReporteViewModel viewModel,
+  ) {
+    final seleccionada = viewModel.categoriaSeleccionada;
+    if (seleccionada == null) return null;
+    final existe = viewModel.categorias.any(
+      (categoria) => categoria.id == seleccionada.id,
+    );
+    return existe ? seleccionada : null;
   }
 
   Widget _buildTituloSection(NuevoReporteViewModel viewModel) {
@@ -398,13 +418,13 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             Text(
-              '${viewModel.archivos.length}/${viewModel.maxArchivos}',
+              '${viewModel.adjuntos.length}/${viewModel.maxArchivos}',
               style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        if (viewModel.archivos.isEmpty)
+        if (viewModel.adjuntos.isEmpty)
           Container(
             padding: const EdgeInsets.all(32),
             decoration: _boxDecoration(),
@@ -439,7 +459,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount:
-                    viewModel.archivos.length +
+                    viewModel.adjuntos.length +
                     (viewModel.puedeAgregarArchivos ? 1 : 0),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
@@ -447,7 +467,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
                   mainAxisSpacing: 10,
                 ),
                 itemBuilder: (context, index) {
-                  if (index < viewModel.archivos.length) {
+                  if (index < viewModel.adjuntos.length) {
                     return _buildArchivoTile(viewModel, index);
                   }
                   return _buildAgregarArchivoTile(viewModel);
@@ -460,11 +480,8 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
   }
 
   Widget _buildArchivoTile(NuevoReporteViewModel viewModel, int index) {
-    final file = viewModel.archivos[index];
-    final isVideo =
-        file.path.toLowerCase().endsWith('.mp4') ||
-        file.path.toLowerCase().endsWith('.mov') ||
-        file.path.toLowerCase().endsWith('.avi');
+    final adjunto = viewModel.adjuntos[index];
+    final isVideo = adjunto.esVideo;
 
     return Stack(
       children: [
@@ -475,37 +492,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: isVideo
-                ? Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.file(
-                        file,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(Icons.videocam, size: 30),
-                          );
-                        },
-                      ),
-                      const Center(
-                        child: Icon(
-                          Icons.play_circle_filled,
-                          color: Colors.white,
-                          size: 40,
-                        ),
-                      ),
-                    ],
-                  )
-                : Image.file(
-                    file,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(Icons.photo, size: 30, color: Colors.white),
-                      );
-                    },
-                  ),
+            child: _buildMediaPreview(adjunto, isVideo),
           ),
         ),
         Positioned(
@@ -544,6 +531,67 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildMediaPreview(ReporteAdjunto adjunto, bool isVideo) {
+    if (adjunto.archivoLocal != null) {
+      return isVideo
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.file(
+                  adjunto.archivoLocal!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Center(child: Icon(Icons.videocam, size: 30));
+                  },
+                ),
+                const Center(
+                  child: Icon(
+                    Icons.play_circle_filled,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+              ],
+            )
+          : Image.file(
+              adjunto.archivoLocal!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Icon(Icons.photo, size: 30, color: Colors.white),
+                );
+              },
+            );
+    } else if (adjunto.remoto != null) {
+      if (isVideo) {
+        return Container(
+          color: Colors.black54,
+          child: const Center(
+            child: Icon(
+              Icons.play_circle_filled,
+              color: Colors.white,
+              size: 40,
+            ),
+          ),
+        );
+      }
+      return Image.network(
+        adjunto.remoto!.url,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(
+            child: Icon(Icons.photo, size: 30, color: Colors.white),
+          );
+        },
+      );
+    }
+    return const SizedBox();
   }
 
   Widget _buildPrioridadSection(NuevoReporteViewModel viewModel) {
@@ -681,7 +729,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
           child: ElevatedButton(
             onPressed: viewModel.isSubmitting || !viewModel.isFormValid
                 ? null
-                : () => _crearReporte(viewModel),
+                : () => _guardarReporte(viewModel),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.actionGreen,
               foregroundColor: Colors.white,
@@ -696,7 +744,11 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : const Text('Crear Reporte'),
+                : Text(
+                    viewModel.esModoEdicion
+                        ? 'Guardar cambios'
+                        : 'Crear reporte',
+                  ),
           ),
         ),
       ],
@@ -805,7 +857,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
     );
   }
 
-  Future<void> _crearReporte(NuevoReporteViewModel viewModel) async {
+  Future<void> _guardarReporte(NuevoReporteViewModel viewModel) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -820,7 +872,9 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
       return;
     }
 
-    final response = await viewModel.crearReporte();
+    final response = viewModel.esModoEdicion
+        ? await viewModel.guardarCambios()
+        : await viewModel.crearReporte();
 
     if (response != null && response.success) {
       if (mounted) {

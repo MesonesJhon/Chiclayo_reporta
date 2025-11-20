@@ -56,6 +56,74 @@ class CloudinaryService {
     }
   }
 
+  Future<void> deleteAssetByUrl(
+    String url, {
+    String resourceType = 'image',
+  }) async {
+    final publicId = extractPublicIdFromUrl(url);
+    if (publicId == null || publicId.isEmpty) {
+      throw Exception('No se pudo extraer el public_id del recurso');
+    }
+    await deleteAsset(publicId, resourceType: resourceType);
+  }
+
+  Future<void> deleteAsset(
+    String publicId, {
+    String resourceType = 'image',
+  }) async {
+    final uri = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$_cloudName/$resourceType/destroy',
+    );
+    final timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000)
+        .toString();
+    final paramsToSign = {'public_id': publicId, 'timestamp': timestamp};
+
+    final signature = _generateSignature(paramsToSign);
+
+    final response = await http.post(
+      uri,
+      body: {
+        'public_id': publicId,
+        'timestamp': timestamp,
+        'api_key': _apiKey,
+        'signature': signature,
+      },
+    );
+
+    if (response.statusCode >= 400) {
+      throw Exception(
+        'Error eliminando archivo de Cloudinary (${response.statusCode}): ${response.body}',
+      );
+    }
+  }
+
+  String? extractPublicIdFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final segments = List<String>.from(uri.pathSegments);
+      final uploadIndex = segments.indexOf('upload');
+      if (uploadIndex == -1 || uploadIndex + 1 >= segments.length) {
+        return null;
+      }
+      final publicIdSegments = segments.sublist(uploadIndex + 1);
+      if (publicIdSegments.isEmpty) return null;
+      // Remover versión (v123456)
+      if (publicIdSegments.first.startsWith('v') &&
+          int.tryParse(publicIdSegments.first.substring(1)) != null) {
+        publicIdSegments.removeAt(0);
+      }
+      if (publicIdSegments.isEmpty) return null;
+      final lastSegment = publicIdSegments.last;
+      final dotIndex = lastSegment.lastIndexOf('.');
+      publicIdSegments[publicIdSegments.length - 1] = dotIndex == -1
+          ? lastSegment
+          : lastSegment.substring(0, dotIndex);
+      return publicIdSegments.join('/');
+    } catch (_) {
+      return null;
+    }
+  }
+
   String _generateSignature(Map<String, String> params) {
     final sortedEntries = params.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));

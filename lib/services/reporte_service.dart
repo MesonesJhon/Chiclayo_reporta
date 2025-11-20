@@ -135,6 +135,89 @@ class ReporteService {
     }
   }
 
+  /// Editar un reporte existente
+  Future<ApiResponse<CrearReporteResponse>> editarReporte({
+    required int reporteId,
+    required int categoriaId,
+    required String titulo,
+    required String descripcion,
+    required double latitud,
+    required double longitud,
+    String? direccion,
+    String? distrito,
+    String? referencia,
+    String? gmapsPlaceId,
+    String prioridad = 'media',
+    bool esPublico = false,
+    List<Map<String, dynamic>>? multimedia,
+  }) async {
+    try {
+      final ubicacionData = {
+        'direccion': direccion ?? '',
+        'latitud': latitud,
+        'longitud': longitud,
+        'distrito': distrito ?? '',
+        'referencia': referencia ?? '',
+        'gmaps_place_id': gmapsPlaceId ?? '',
+      };
+
+      final response = await _apiService
+          .put('${ApiConstants.reportesEditar}/$reporteId', {
+            'categoria_id': categoriaId,
+            'titulo': titulo,
+            'descripcion': descripcion,
+            'prioridad': prioridad,
+            'es_publico': esPublico,
+            'ubicacion': ubicacionData,
+            'multimedia': multimedia ?? [],
+          });
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        final reporteResponse = CrearReporteResponse.fromJson(
+          data['data'] as Map<String, dynamic>,
+        );
+
+        return ApiResponse.success(
+          reporteResponse,
+          message: data['message'] as String? ?? 'Reporte actualizado',
+        );
+      } else {
+        return ApiResponse.error(
+          data['message'] as String? ?? 'Error al actualizar el reporte',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Error de conexión: $e');
+    }
+  }
+
+  /// Eliminar un reporte
+  Future<ApiResponse<bool>> eliminarReporte(int reporteId) async {
+    try {
+      final response = await _apiService.delete(
+        '${ApiConstants.reportesEliminar}/$reporteId',
+      );
+      final data = json.decode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        return ApiResponse.success(
+          true,
+          message: data['message'] as String? ?? 'Reporte eliminado',
+        );
+      } else {
+        return ApiResponse.error(
+          data['message'] as String? ?? 'Error al eliminar el reporte',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Error de conexión: $e');
+    }
+  }
+
   /// Obtener los reportes del usuario actual
   Future<ApiResponse<List<ReporteModel>>> obtenerMisReportes() async {
     try {

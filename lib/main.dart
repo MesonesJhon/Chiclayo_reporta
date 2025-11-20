@@ -64,6 +64,7 @@ import 'views/home/nuevo_reporte_screen.dart';
 import 'views/admin/admin_home_screen.dart';
 import 'views/home/mis_reportes_screen.dart';
 import 'views/splash_screen.dart';
+import 'views/home/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -146,6 +147,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           '/reporte': (context) => const CreateReportScreen(),
           '/nuevo_reporte': (context) => const NuevoReporteScreen(),
           '/mis_reportes': (context) => const MyReportsScreen(),
+          '/settings': (context) => const SettingsScreen(),
         },
         debugShowCheckedModeBanner: false,
       ),

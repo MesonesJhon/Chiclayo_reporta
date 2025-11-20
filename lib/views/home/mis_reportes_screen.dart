@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
+import '../../services/cloudinary_service.dart';
 import '../../viewmodels/mis_reportes_viewmodel.dart';
 import '../../models/reporte_model.dart';
 import '../../models/archivo_multimedia_model.dart';
 import '../../utils/app_colors.dart';
 import '../widgets/report_location_map.dart';
+import 'nuevo_reporte_screen.dart';
 
 class MyReportsScreen extends StatefulWidget {
   const MyReportsScreen({super.key});
@@ -324,7 +326,14 @@ class _MyReportsScreenState extends State<MyReportsScreen>
               child: ListView.builder(
                 itemCount: reports.length,
                 itemBuilder: (context, index) {
-                  return _ReporteCard(reporte: reports[index]);
+                  final reporte = reports[index];
+                  return _ReporteCard(
+                    reporte: reporte,
+                    onViewMultimedia: () =>
+                        _openMultimediaGallery(context, reporte),
+                    onEdit: () => _abrirEdicion(reporte),
+                    onDelete: () => _confirmarEliminar(reporte),
+                  );
                 },
               ),
             ),
@@ -333,12 +342,134 @@ class _MyReportsScreenState extends State<MyReportsScreen>
       },
     );
   }
+
+  void _openMultimediaGallery(BuildContext context, ReporteModel reporte) {
+    if (reporte.archivos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Este reporte no tiene archivos aún')),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ReporteMultimediaViewer(reporte: reporte),
+    );
+  }
+
+  Future<void> _abrirEdicion(ReporteModel reporte) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NuevoReporteScreen(reporteAEditar: reporte),
+      ),
+    );
+    if (result == true && mounted) {
+      await context.read<MisReportesViewModel>().cargarReportes();
+    }
+  }
+
+  Future<void> _confirmarEliminar(ReporteModel reporte) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar reporte'),
+        content: const Text(
+          '¿Deseas eliminar este reporte? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.criticalRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado == true) {
+      await _eliminarReporte(reporte);
+    }
+  }
+
+  Future<void> _eliminarReporte(ReporteModel reporte) async {
+    final reporteId = reporte.id;
+    if (reporteId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se puede eliminar este reporte (ID inválido)'),
+          backgroundColor: AppColors.criticalRed,
+        ),
+      );
+      return;
+    }
+
+    final viewModel = context.read<MisReportesViewModel>();
+    final response = await viewModel.eliminarReporte(reporteId);
+
+    if (response.success) {
+      await _eliminarMultimediaDeCloudinary(reporte);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            backgroundColor: AppColors.actionGreen,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            backgroundColor: AppColors.criticalRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _eliminarMultimediaDeCloudinary(ReporteModel reporte) async {
+    if (reporte.archivos.isEmpty) return;
+    final cloudinary = CloudinaryService();
+    for (final archivo in reporte.archivos) {
+      if (archivo.url.isEmpty) continue;
+      final isVideo = (archivo.mimeType ?? archivo.tipo).toLowerCase().contains(
+        'video',
+      );
+      try {
+        await cloudinary.deleteAssetByUrl(
+          archivo.url,
+          resourceType: isVideo ? 'video' : 'image',
+        );
+      } catch (e) {
+        debugPrint('Error eliminando archivo de Cloudinary: $e');
+      }
+    }
+  }
 }
 
 class _ReporteCard extends StatelessWidget {
   final ReporteModel reporte;
+  final VoidCallback onViewMultimedia;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _ReporteCard({required this.reporte});
+  const _ReporteCard({
+    required this.reporte,
+    required this.onViewMultimedia,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -415,6 +546,22 @@ class _ReporteCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      onEdit();
+                    } else if (value == 'delete') {
+                      onDelete();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Eliminar'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -514,7 +661,7 @@ class _ReporteCard extends StatelessWidget {
                 // Ver fotos
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _openMultimediaGallery(context, reporte),
+                    onPressed: onViewMultimedia,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryBlue,
                       side: BorderSide(color: AppColors.primaryBlue),
@@ -579,22 +726,6 @@ class _ReporteCard extends StatelessWidget {
       ),
     );
   }
-
-  void _openMultimediaGallery(BuildContext context, ReporteModel reporte) {
-    if (reporte.archivos.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Este reporte no tiene archivos aún')),
-      );
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ReporteMultimediaViewer(reporte: reporte),
-    );
-  }
 }
 
 class _ReporteMultimediaViewer extends StatefulWidget {
@@ -610,6 +741,8 @@ class _ReporteMultimediaViewer extends StatefulWidget {
 class _ReporteMultimediaViewerState extends State<_ReporteMultimediaViewer> {
   late final PageController _pageController;
   int _currentIndex = 0;
+  final Map<int, VideoPlayerController> _videoControllers = {};
+  final Map<int, Future<void>> _videoInitFutures = {};
 
   List<ArchivoMultimediaModel> get _archivos => widget.reporte.archivos;
 
@@ -622,25 +755,15 @@ class _ReporteMultimediaViewerState extends State<_ReporteMultimediaViewer> {
   @override
   void dispose() {
     _pageController.dispose();
+    for (final controller in _videoControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   bool _isVideo(ArchivoMultimediaModel archivo) {
     final type = archivo.mimeType ?? archivo.tipo;
     return type.toLowerCase().contains('video');
-  }
-
-  Future<void> _openExternal(String url) async {
-    final uri = Uri.parse(url);
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo abrir el archivo'),
-          backgroundColor: AppColors.criticalRed,
-        ),
-      );
-    }
   }
 
   @override
@@ -679,15 +802,18 @@ class _ReporteMultimediaViewerState extends State<_ReporteMultimediaViewer> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: _archivos.length,
-              onPageChanged: (index) => setState(() {
-                _currentIndex = index;
-              }),
+              onPageChanged: (index) {
+                _pauseVideo(_currentIndex);
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
               itemBuilder: (context, index) {
                 final archivo = _archivos[index];
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _isVideo(archivo)
-                      ? _buildVideoPreview(archivo)
+                      ? _buildVideoPreview(archivo, index)
                       : _buildImagePreview(archivo),
                 );
               },
@@ -776,49 +902,67 @@ class _ReporteMultimediaViewerState extends State<_ReporteMultimediaViewer> {
     );
   }
 
-  Widget _buildVideoPreview(ArchivoMultimediaModel archivo) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.black,
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildVideoPreview(ArchivoMultimediaModel archivo, int index) {
+    final controller =
+        _videoControllers[index] ??
+        VideoPlayerController.networkUrl(Uri.parse(archivo.url));
+    if (!_videoControllers.containsKey(index)) {
+      _videoControllers[index] = controller
+        ..setLooping(true)
+        ..setVolume(1.0);
+      _videoInitFutures[index] = controller.initialize();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const Icon(
-            Icons.play_circle_fill_rounded,
+          FutureBuilder(
+            future: _videoInitFutures[index],
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                final aspectRatio = controller.value.aspectRatio == 0
+                    ? 16 / 9
+                    : controller.value.aspectRatio;
+                return AspectRatio(
+                  aspectRatio: aspectRatio,
+                  child: VideoPlayer(controller),
+                );
+              }
+              return Container(
+                color: Colors.black,
+                child: const Center(child: CircularProgressIndicator()),
+              );
+            },
+          ),
+          IconButton(
+            iconSize: 64,
             color: Colors.white,
-            size: 72,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            archivo.nombre,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            icon: Icon(
+              controller.value.isPlaying
+                  ? Icons.pause_circle_filled
+                  : Icons.play_circle_fill_rounded,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Tipo: ${archivo.mimeType ?? archivo.tipo}',
-            style: TextStyle(color: Colors.grey[300]),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => _openExternal(archivo.url),
-            icon: const Icon(Icons.open_in_new),
-            label: const Text('Reproducir video'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.primaryBlue,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
+            onPressed: () {
+              setState(() {
+                if (controller.value.isPlaying) {
+                  controller.pause();
+                } else {
+                  controller.play();
+                }
+              });
+            },
           ),
         ],
       ),
     );
+  }
+
+  void _pauseVideo(int index) {
+    final controller = _videoControllers[index];
+    if (controller != null && controller.value.isPlaying) {
+      controller.pause();
+    }
   }
 }

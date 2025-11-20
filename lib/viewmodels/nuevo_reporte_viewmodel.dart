@@ -4,8 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
 import '../services/cloudinary_service.dart';
 import '../services/reporte_service.dart';
+import '../models/archivo_multimedia_model.dart';
 import '../models/categoria_model.dart';
 import '../models/crear_reporte_response.dart';
+import '../models/reporte_model.dart';
 import '../models/api_response.dart';
 
 class NuevoReporteViewModel with ChangeNotifier {
@@ -41,8 +43,11 @@ class NuevoReporteViewModel with ChangeNotifier {
   String _gmapsPlaceId = '';
 
   // Archivos
-  List<File> _archivos = [];
+  final List<ReporteAdjunto> _adjuntos = [];
+  final List<ArchivoMultimediaModel> _multimediaEliminados = [];
   final int _maxArchivos = 5;
+  ReporteModel? _reporteEditando;
+  int? _categoriaPendienteId;
 
   // Getters
   bool get isLoading => _isLoading;
@@ -62,9 +67,10 @@ class NuevoReporteViewModel with ChangeNotifier {
   String get distrito => _distrito;
   String get referencia => _referencia;
   String get gmapsPlaceId => _gmapsPlaceId;
-  List<File> get archivos => _archivos;
+  List<ReporteAdjunto> get adjuntos => List.unmodifiable(_adjuntos);
   int get maxArchivos => _maxArchivos;
-  bool get puedeAgregarArchivos => _archivos.length < _maxArchivos;
+  bool get puedeAgregarArchivos => _adjuntos.length < _maxArchivos;
+  bool get esModoEdicion => _reporteEditando != null;
 
   // Validación del formulario
   bool get isFormValid {
@@ -103,6 +109,7 @@ class NuevoReporteViewModel with ChangeNotifier {
         _categorias = response.data!;
         _errorMessage = '';
         print('Categorías cargadas: ${_categorias.length}');
+        _aplicarCategoriaPendienteSiCorresponde();
       } else {
         _errorMessage = response.message.isNotEmpty
             ? response.message
@@ -123,6 +130,9 @@ class NuevoReporteViewModel with ChangeNotifier {
   /// Establecer categoría seleccionada
   void setCategoria(CategoriaModel? categoria) {
     _categoriaSeleccionada = categoria;
+    if (categoria != null) {
+      _categoriaPendienteId = categoria.id;
+    }
     _errorMessage = '';
     notifyListeners();
   }
@@ -195,7 +205,7 @@ class NuevoReporteViewModel with ChangeNotifier {
       );
 
       if (image != null) {
-        _archivos.add(File(image.path));
+        _adjuntos.add(ReporteAdjunto.local(File(image.path)));
         _errorMessage = '';
         notifyListeners();
       }
@@ -220,7 +230,7 @@ class NuevoReporteViewModel with ChangeNotifier {
       );
 
       if (image != null) {
-        _archivos.add(File(image.path));
+        _adjuntos.add(ReporteAdjunto.local(File(image.path)));
         _errorMessage = '';
         notifyListeners();
       }
@@ -244,7 +254,7 @@ class NuevoReporteViewModel with ChangeNotifier {
       );
 
       if (video != null) {
-        _archivos.add(File(video.path));
+        _adjuntos.add(ReporteAdjunto.local(File(video.path)));
         _errorMessage = '';
         notifyListeners();
       }
@@ -268,7 +278,7 @@ class NuevoReporteViewModel with ChangeNotifier {
       );
 
       if (video != null) {
-        _archivos.add(File(video.path));
+        _adjuntos.add(ReporteAdjunto.local(File(video.path)));
         _errorMessage = '';
         notifyListeners();
       }
@@ -280,15 +290,19 @@ class NuevoReporteViewModel with ChangeNotifier {
 
   /// Eliminar archivo
   void eliminarArchivo(int index) {
-    if (index >= 0 && index < _archivos.length) {
-      _archivos.removeAt(index);
+    if (index >= 0 && index < _adjuntos.length) {
+      final item = _adjuntos.removeAt(index);
+      if (item.remoto != null) {
+        _multimediaEliminados.add(item.remoto!);
+      }
       notifyListeners();
     }
   }
 
   /// Limpiar todos los archivos
   void limpiarArchivos() {
-    _archivos.clear();
+    _adjuntos.clear();
+    _multimediaEliminados.clear();
     notifyListeners();
   }
 
@@ -346,14 +360,25 @@ class NuevoReporteViewModel with ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> _prepararMultimediaParaEnvio() async {
-    if (_archivos.isEmpty) return [];
+    if (_adjuntos.isEmpty) return [];
 
     final List<Map<String, dynamic>> multimedia = [];
 
-    for (var i = 0; i < _archivos.length; i++) {
-      final archivo = _archivos[i];
-      final uploadResult = await _cloudinaryService.uploadFile(archivo);
-      multimedia.add(uploadResult.toMultimediaPayload(esPrincipal: i == 0));
+    for (var i = 0; i < _adjuntos.length; i++) {
+      final adjunto = _adjuntos[i];
+      final esPrincipal = i == 0;
+      if (adjunto.remoto != null) {
+        final data = Map<String, dynamic>.from(adjunto.remoto!.toJson());
+        data['es_principal'] = esPrincipal;
+        multimedia.add(data);
+      } else if (adjunto.archivoLocal != null) {
+        final uploadResult = await _cloudinaryService.uploadFile(
+          adjunto.archivoLocal!,
+        );
+        multimedia.add(
+          uploadResult.toMultimediaPayload(esPrincipal: esPrincipal),
+        );
+      }
     }
 
     return multimedia;
@@ -362,6 +387,7 @@ class NuevoReporteViewModel with ChangeNotifier {
   /// Limpiar formulario
   void limpiarFormulario() {
     _categoriaSeleccionada = null;
+    _categoriaPendienteId = null;
     _titulo = '';
     _descripcion = '';
     _prioridad = 'media';
@@ -372,7 +398,9 @@ class NuevoReporteViewModel with ChangeNotifier {
     _distrito = '';
     _referencia = '';
     _gmapsPlaceId = '';
-    _archivos.clear();
+    _adjuntos.clear();
+    _multimediaEliminados.clear();
+    _reporteEditando = null;
     _errorMessage = '';
     _submitErrorMessage = '';
     notifyListeners();
@@ -383,5 +411,146 @@ class NuevoReporteViewModel with ChangeNotifier {
     _errorMessage = '';
     _submitErrorMessage = '';
     notifyListeners();
+  }
+
+  void prepararNuevoReporte() {
+    limpiarFormulario();
+  }
+
+  void cargarDesdeReporte(ReporteModel reporte) {
+    _reporteEditando = reporte;
+    _titulo = reporte.titulo;
+    _descripcion = reporte.descripcion;
+    _prioridad = reporte.prioridad;
+    _esPublico = reporte.esPublico;
+    _latitud = reporte.ubicacion?.latitud;
+    _longitud = reporte.ubicacion?.longitud;
+    _direccion = reporte.ubicacion?.direccion ?? '';
+    _distrito = reporte.ubicacion?.distrito ?? '';
+    _referencia = reporte.ubicacion?.referencia ?? '';
+    _gmapsPlaceId = reporte.ubicacion?.gmapsPlaceId ?? '';
+    _adjuntos
+      ..clear()
+      ..addAll(reporte.archivos.map(ReporteAdjunto.remoto));
+    _multimediaEliminados.clear();
+    _categoriaPendienteId = reporte.categoriaId;
+    _aplicarCategoriaPendienteSiCorresponde();
+    notifyListeners();
+  }
+
+  Future<ApiResponse<CrearReporteResponse>?> guardarCambios() async {
+    if (_reporteEditando == null) {
+      return ApiResponse.error('No hay un reporte para editar');
+    }
+
+    final reporteId = _reporteEditando!.id;
+    if (reporteId == null) {
+      _submitErrorMessage = 'El reporte no tiene un identificador válido';
+      notifyListeners();
+      return ApiResponse.error(_submitErrorMessage);
+    }
+
+    if (!isFormValid) {
+      _submitErrorMessage = 'Por favor, completa todos los campos obligatorios';
+      notifyListeners();
+      return ApiResponse.error(_submitErrorMessage);
+    }
+
+    _isSubmitting = true;
+    _submitErrorMessage = '';
+    notifyListeners();
+
+    try {
+      final multimediaPayload = await _prepararMultimediaParaEnvio();
+      final response = await _reporteService.editarReporte(
+        reporteId: reporteId,
+        categoriaId: _categoriaSeleccionada!.id,
+        titulo: _titulo.trim(),
+        descripcion: _descripcion.trim(),
+        latitud: _latitud!,
+        longitud: _longitud!,
+        direccion: _direccion.trim().isNotEmpty ? _direccion.trim() : null,
+        distrito: _distrito.trim().isNotEmpty ? _distrito.trim() : null,
+        referencia: _referencia.trim().isNotEmpty ? _referencia.trim() : null,
+        gmapsPlaceId: _gmapsPlaceId.trim().isNotEmpty
+            ? _gmapsPlaceId.trim()
+            : null,
+        prioridad: _prioridad,
+        esPublico: _esPublico,
+        multimedia: multimediaPayload,
+      );
+
+      _isSubmitting = false;
+
+      if (response.success) {
+        await _eliminarMultimediaPendiente();
+        _submitErrorMessage = '';
+        limpiarFormulario();
+      } else {
+        _submitErrorMessage = response.message;
+      }
+
+      notifyListeners();
+      return response;
+    } catch (e) {
+      _isSubmitting = false;
+      _submitErrorMessage = 'Error al actualizar el reporte: $e';
+      notifyListeners();
+      return ApiResponse.error(_submitErrorMessage);
+    }
+  }
+
+  Future<void> _eliminarMultimediaPendiente() async {
+    for (final media in _multimediaEliminados) {
+      if (media.url.isEmpty) continue;
+      try {
+        final isVideo = (media.mimeType ?? media.tipo).toLowerCase().contains(
+          'video',
+        );
+        await _cloudinaryService.deleteAssetByUrl(
+          media.url,
+          resourceType: isVideo ? 'video' : 'image',
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error eliminando archivo en Cloudinary: $e');
+        }
+      }
+    }
+    _multimediaEliminados.clear();
+  }
+
+  void _aplicarCategoriaPendienteSiCorresponde() {
+    if (_categoriaPendienteId == null || _categorias.isEmpty) return;
+    try {
+      final categoria = _categorias.firstWhere(
+        (element) => element.id == _categoriaPendienteId,
+      );
+      _categoriaSeleccionada = categoria;
+      _categoriaPendienteId = null;
+    } catch (_) {}
+  }
+}
+
+class ReporteAdjunto {
+  final File? archivoLocal;
+  final ArchivoMultimediaModel? remoto;
+
+  ReporteAdjunto.local(File file) : archivoLocal = file, remoto = null;
+
+  ReporteAdjunto.remoto(ArchivoMultimediaModel media)
+    : archivoLocal = null,
+      remoto = media;
+
+  bool get esRemoto => remoto != null;
+  bool get esVideo {
+    if (archivoLocal != null) {
+      final path = archivoLocal!.path.toLowerCase();
+      return path.endsWith('.mp4') ||
+          path.endsWith('.mov') ||
+          path.endsWith('.avi');
+    }
+    final mime = remoto?.mimeType ?? remoto?.tipo ?? '';
+    return mime.toLowerCase().contains('video');
   }
 }

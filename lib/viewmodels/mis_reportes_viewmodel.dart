@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/reporte_model.dart';
+import '../models/api_response.dart';
 import '../services/reporte_service.dart';
 
 class MisReportesViewModel extends ChangeNotifier {
@@ -45,5 +46,14 @@ class MisReportesViewModel extends ChangeNotifier {
   void setFiltro(String valor) {
     filtro = valor;
     notifyListeners();
+  }
+
+  Future<ApiResponse<bool>> eliminarReporte(int reporteId) async {
+    final response = await _service.eliminarReporte(reporteId);
+    if (response.success) {
+      _reportes.removeWhere((r) => r.id == reporteId);
+      notifyListeners();
+    }
+    return response;
   }
 }

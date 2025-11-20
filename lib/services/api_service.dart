@@ -158,4 +158,16 @@ class ApiService {
       throw Exception('Error de conexión: $e');
     }
   }
+
+  Future<http.Response> delete(String endpoint) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_baseUrl$endpoint'),
+        headers: _headers,
+      );
+      return response;
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
+  }
 }
