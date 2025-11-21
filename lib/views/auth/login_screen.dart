@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../utils/app_colors.dart'; // Importa tus colores
+import '../widgets/custom_password_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -239,11 +240,11 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 20),
 
             // Password Field
-            _buildTextField(
+            CustomPasswordField(
               controller: _passwordController,
               label: 'Contraseña',
               icon: Icons.lock_outline_rounded,
-              isPassword: true,
+              isLast: true,
             ),
             const SizedBox(height: 12),
 

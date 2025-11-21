@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/register_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../utils/app_colors.dart';
+import '../widgets/custom_password_field.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -474,19 +475,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           onChanged: registerViewModel.setTelefono,
         ),
         const SizedBox(height: 16),
-        _buildTextField(
+        CustomPasswordField(
           controller: _passwordController,
           label: 'Contraseña',
           icon: Icons.lock_rounded,
-          isPassword: true,
           onChanged: registerViewModel.setPassword,
         ),
         const SizedBox(height: 16),
-        _buildTextField(
+        CustomPasswordField(
           controller: _confirmPasswordController,
           label: 'Confirmar Contraseña',
           icon: Icons.lock_outline_rounded,
-          isPassword: true,
+          isLast: true,
           onChanged: registerViewModel.setConfirmPassword,
         ),
       ],

@@ -4,6 +4,7 @@ import '../../viewmodels/auth_viewmodel.dart';
 import '../../models/user_model.dart';
 import '../../utils/app_colors.dart';
 import '../../services/notification_service.dart';
+import '../widgets/custom_password_field.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -654,9 +655,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    bool obscureCurrent = true;
-    bool obscureNew = true;
-    bool obscureConfirm = true;
 
     showDialog(
       context: context,
@@ -696,31 +694,20 @@ class _SettingsScreenState extends State<SettingsScreen>
                         ),
                       ),
                       const SizedBox(height: 24),
-                      _buildPasswordField(
+                      CustomPasswordField(
                         controller: currentPasswordController,
                         label: 'Contraseña actual',
-                        obscureText: obscureCurrent,
-                        onToggleVisibility: () {
-                          setState(() => obscureCurrent = !obscureCurrent);
-                        },
                       ),
                       const SizedBox(height: 16),
-                      _buildPasswordField(
+                      CustomPasswordField(
                         controller: newPasswordController,
                         label: 'Nueva contraseña',
-                        obscureText: obscureNew,
-                        onToggleVisibility: () {
-                          setState(() => obscureNew = !obscureNew);
-                        },
                       ),
                       const SizedBox(height: 16),
-                      _buildPasswordField(
+                      CustomPasswordField(
                         controller: confirmPasswordController,
                         label: 'Confirmar contraseña',
-                        obscureText: obscureConfirm,
-                        onToggleVisibility: () {
-                          setState(() => obscureConfirm = !obscureConfirm);
-                        },
+                        isLast: true,
                         validator: (value) {
                           if (value != newPasswordController.text) {
                             return 'Las contraseñas no coinciden';
@@ -817,43 +804,6 @@ class _SettingsScreenState extends State<SettingsScreen>
           },
         );
       },
-    );
-  }
-
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String label,
-    required bool obscureText,
-    required VoidCallback onToggleVisibility,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      validator:
-          validator ??
-          (value) {
-            if (value == null || value.isEmpty) {
-              return 'Este campo es obligatorio';
-            }
-            if (value.length < 6) {
-              return 'Mínimo 6 caracteres';
-            }
-            return null;
-          },
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        prefixIcon: const Icon(Icons.lock_outline_rounded),
-        suffixIcon: IconButton(
-          icon: Icon(
-            obscureText
-                ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined,
-          ),
-          onPressed: onToggleVisibility,
-        ),
-      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../utils/app_colors.dart';
+import '../widgets/custom_password_field.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String? dni;
@@ -21,8 +22,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _authService = AuthService();
 
   bool _isLoading = false;
-  bool _obscureNuevaPassword = true;
-  bool _obscureConfirmarPassword = true;
   String? _errorMessage;
 
   @override
@@ -244,18 +243,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           const SizedBox(height: 20),
 
                           // Campo Nueva contraseña
-                          _buildTextField(
+                          CustomPasswordField(
                             controller: _nuevaPasswordController,
                             label: 'Nueva contraseña',
                             hint: 'Mínimo 6 caracteres',
                             icon: Icons.lock_outlined,
-                            isPassword: true,
-                            obscureText: _obscureNuevaPassword,
-                            onToggleVisibility: () {
-                              setState(() {
-                                _obscureNuevaPassword = !_obscureNuevaPassword;
-                              });
-                            },
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'La contraseña es obligatoria';
@@ -269,21 +261,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           const SizedBox(height: 20),
 
                           // Campo Confirmar contraseña
-                          _buildTextField(
+                          CustomPasswordField(
                             controller: _confirmarPasswordController,
                             label: 'Confirmar contraseña',
                             hint: 'Repite tu contraseña',
                             icon: Icons.lock_reset_outlined,
-                            isPassword: true,
-                            obscureText: _obscureConfirmarPassword,
                             isLast: true,
-                            onSubmitted: (_) => _resetPassword(),
-                            onToggleVisibility: () {
-                              setState(() {
-                                _obscureConfirmarPassword =
-                                    !_obscureConfirmarPassword;
-                              });
-                            },
+                            onFieldSubmitted: (_) => _resetPassword(),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Confirma tu contraseña';
