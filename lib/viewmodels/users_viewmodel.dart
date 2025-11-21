@@ -105,4 +105,7 @@ class UsersViewModel extends ChangeNotifier {
     _applyFilter();
     notifyListeners();
   }
+
+  int get activeUsersCount =>
+      _users.where((u) => u.estado.toLowerCase() == 'activo').length;
 }

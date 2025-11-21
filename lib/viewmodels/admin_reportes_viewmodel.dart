@@ -227,7 +227,7 @@ class AdminReportesViewModel extends ChangeNotifier {
       _todosReportes.where((r) => r.estado.toLowerCase() == 'pendiente').length;
 
   int get reportesEnProceso => _todosReportes
-      .where((r) => r.estado.toLowerCase() == 'en proceso')
+      .where((r) => r.estado.toLowerCase().replaceAll(' ', '_') == 'en_proceso')
       .length;
 
   int get reportesResueltos =>

@@ -7,9 +7,11 @@ import '../../utils/app_colors.dart';
 import 'admin_reportes_screen.dart';
 import 'manage_users_screen.dart';
 import 'admin_estadisticas_screen.dart';
+import '../widgets/incident_map_widget.dart';
 import 'admin_mapa_incidentes_screen.dart';
 import 'admin_permisos_screen.dart';
 import 'admin_soporte_screen.dart';
+import '../../viewmodels/users_viewmodel.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -48,6 +50,21 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     );
 
     _animationController.forward();
+
+    // Cargar datos iniciales
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final reportesViewModel = Provider.of<AdminReportesViewModel>(
+        context,
+        listen: false,
+      );
+      final usersViewModel = Provider.of<UsersViewModel>(
+        context,
+        listen: false,
+      );
+
+      reportesViewModel.cargarReportes();
+      usersViewModel.loadUsers();
+    });
   }
 
   @override
@@ -198,7 +215,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
           // Header del Drawer
           Container(
             height: 180,
-            padding: const EdgeInsets.only(top: 30, left: 20, right: 20, bottom: 20),
+            padding: const EdgeInsets.only(
+              top: 30,
+              left: 20,
+              right: 20,
+              bottom: 20,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -262,7 +284,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                           ),
                           const SizedBox(height: 2),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(10),
@@ -302,7 +327,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             child: Container(
               color: Colors.white,
               child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 10,
+                ),
                 children: [
                   _buildDrawerItem(
                     icon: Icons.dashboard_rounded,
@@ -361,14 +389,18 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const AdminMapaIncidentesScreen(),
+                          builder: (context) =>
+                              const AdminMapaIncidentesScreen(),
                         ),
                       );
                     },
                   ),
                   const SizedBox(height: 10),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 5,
+                    ),
                     child: Text(
                       'CONFIGURACIÓN',
                       style: TextStyle(
@@ -426,18 +458,18 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             decoration: BoxDecoration(
               color: Colors.grey[50],
-              border: Border(
-                top: BorderSide(color: Colors.grey[200]!),
-              ),
+              border: Border(top: BorderSide(color: Colors.grey[200]!)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, 
-                        size: 16, 
-                        color: Colors.grey[600]),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Panel Admin v1.0.0',
@@ -452,16 +484,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.access_time_rounded, 
-                        size: 14, 
-                        color: Colors.grey[500]),
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 14,
+                      color: Colors.grey[500],
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Último acceso: Hoy',
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 10,
-                      ),
+                      style: TextStyle(color: Colors.grey[500], fontSize: 10),
                     ),
                   ],
                 ),
@@ -667,6 +698,79 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   }
 
   Widget _buildAdminStats() {
+    final reportesViewModel = Provider.of<AdminReportesViewModel>(context);
+    final usersViewModel = Provider.of<UsersViewModel>(context);
+
+    return Column(
+      children: [
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.5,
+          children: [
+            _buildStatCard(
+              title: 'Pendientes',
+              value: reportesViewModel.reportesPendientes.toString(),
+              icon: Icons.pending_actions_rounded,
+              color: Colors.orange,
+              isLoading: reportesViewModel.isLoading,
+            ),
+            _buildStatCard(
+              title: 'En Proceso',
+              value: reportesViewModel.reportesEnProceso.toString(),
+              icon: Icons.autorenew_rounded,
+              color: Colors.blue,
+              isLoading: reportesViewModel.isLoading,
+            ),
+            _buildStatCard(
+              title: 'Resueltos',
+              value: reportesViewModel.reportesResueltos.toString(),
+              icon: Icons.check_circle_outline_rounded,
+              color: Colors.green,
+              isLoading: reportesViewModel.isLoading,
+            ),
+            _buildStatCard(
+              title: 'Usuarios Activos',
+              value: usersViewModel.activeUsersCount.toString(),
+              icon: Icons.group_rounded,
+              color: Colors.purple,
+              isLoading: usersViewModel.isLoading,
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Container(
+          height: 400,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: const IncidentMapWidget(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required bool isLoading,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -674,81 +778,70 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: color.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: color.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                Icons.analytics_rounded,
-                color: AppColors.primaryBlue,
-                size: 18,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
               ),
-              const SizedBox(width: 6),
-              const Text(
-                'Estadísticas del Sistema',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
+              if (isLoading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: color,
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Usar Row con Expanded en lugar de GridView para evitar overflow
-          Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _AdminStatCard(
-                      title: 'Reportes Pendientes',
-                      value: '24',
-                      change: '+5%',
-                      color: AppColors.warningYellow,
-                      icon: Icons.pending_actions_rounded,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _AdminStatCard(
-                      title: 'Reportes Resueltos',
-                      value: '156',
-                      change: '+12%',
-                      color: AppColors.actionGreen,
-                      icon: Icons.check_circle_rounded,
+                ),
+                const SizedBox(height: 4),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _AdminStatCard(
-                      title: 'Usuarios Activos',
-                      value: '1,234',
-                      change: '+3%',
-                      color: AppColors.infoBlue,
-                      icon: Icons.people_alt_rounded,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _AdminStatCard(
-                      title: 'Tiempo Respuesta',
-                      value: '2.3h',
-                      change: '-15%',
-                      color: AppColors.chiclayoOrange,
-                      icon: Icons.timer_rounded,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
