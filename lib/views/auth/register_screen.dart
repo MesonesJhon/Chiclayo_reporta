@@ -589,7 +589,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     registerViewModel.toJson(),
                   );
                   if (success && mounted) {
-                    Navigator.pushReplacementNamed(context, '/home');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Registro exitoso. Por favor inicia sesión.',
+                        ),
+                        backgroundColor: AppColors.actionGreen,
+                      ),
+                    );
+                    Navigator.pushReplacementNamed(context, '/login');
                   }
                 }
               },
