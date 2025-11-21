@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/admin_reportes_viewmodel.dart';
 import '../../models/user_model.dart';
 import '../../utils/app_colors.dart';
+import 'admin_reportes_screen.dart';
+import 'manage_users_screen.dart';
+import 'admin_estadisticas_screen.dart';
+import 'admin_mapa_incidentes_screen.dart';
+import 'admin_permisos_screen.dart';
+import 'admin_soporte_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -70,7 +77,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
           return Opacity(
             opacity: _fadeAnimation.value,
             child: const Text(
-              'PANEL ADMINISTRADOR',
+              'PANEL ADMIN',
               style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0),
             ),
           );
@@ -182,167 +189,231 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
   Widget _buildDrawer(BuildContext context, UserModel? user) {
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.8,
+      elevation: 10,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
+      ),
       child: Column(
         children: [
           // Header del Drawer
           Container(
-            height: 220,
+            height: 180,
+            padding: const EdgeInsets.only(top: 30, left: 20, right: 20, bottom: 20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
                   AppColors.primaryBlue,
-                  AppColors.primaryBlue.withOpacity(0.8),
+                  AppColors.primaryBlue.withOpacity(0.9),
                 ],
               ),
               borderRadius: const BorderRadius.only(
                 bottomRight: Radius.circular(30),
               ),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: -20,
-                  right: -20,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 32,
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.admin_panel_settings_rounded,
-                          size: 30,
-                          color: AppColors.primaryBlue,
-                        ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        user?.nombreCompleto ??
-                            user?.nombres ??
-                            'Administrador',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: Icon(
+                        Icons.admin_panel_settings_rounded,
+                        size: 28,
+                        color: AppColors.primaryBlue,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'ROL: ADMINISTRADOR',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.nombreCompleto ?? 'Administrador',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'ADMINISTRADOR',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user?.dni ?? user?.email ?? 'Sistema',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  user?.email ?? 'admin@chiclayo.gob.pe',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
 
-          // Items del menú
+          // Menú Items
           Expanded(
             child: Container(
               color: Colors.white,
               child: ListView(
-                padding: const EdgeInsets.only(top: 20),
+                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                 children: [
                   _buildDrawerItem(
                     icon: Icons.dashboard_rounded,
                     title: 'Dashboard Principal',
                     color: AppColors.primaryBlue,
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
+                    isActive: true, // Active item
+                    onTap: () => Navigator.pop(context),
                   ),
+                  const SizedBox(height: 5),
                   _buildDrawerItem(
                     icon: Icons.assignment_rounded,
                     title: 'Gestión de Reportes',
                     color: AppColors.actionGreen,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a gestión de reportes
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminReportesScreen(),
+                        ),
+                      );
                     },
                   ),
+                  const SizedBox(height: 5),
                   _buildDrawerItem(
                     icon: Icons.people_rounded,
                     title: 'Usuarios Registrados',
                     color: AppColors.chiclayoOrange,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a gestión de usuarios
+                      Navigator.pushNamed(context, '/manage_users');
                     },
                   ),
+                  const SizedBox(height: 5),
                   _buildDrawerItem(
                     icon: Icons.analytics_rounded,
                     title: 'Estadísticas Avanzadas',
                     color: AppColors.infoBlue,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a estadísticas
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminEstadisticasScreen(),
+                        ),
+                      );
                     },
                   ),
+                  const SizedBox(height: 5),
                   _buildDrawerItem(
                     icon: Icons.map_rounded,
                     title: 'Mapa de Incidentes',
                     color: Colors.purple,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a mapa
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminMapaIncidentesScreen(),
+                        ),
+                      );
                     },
                   ),
-                  const Divider(height: 40, indent: 20, endIndent: 20),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    child: Text(
+                      'CONFIGURACIÓN',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
                   _buildDrawerItem(
                     icon: Icons.settings_rounded,
                     title: 'Configuración del Sistema',
-                    color: Colors.grey,
+                    color: Colors.grey[600]!,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a configuración
+                      Navigator.pushNamed(context, '/settings');
                     },
                   ),
                   _buildDrawerItem(
                     icon: Icons.security_rounded,
                     title: 'Permisos y Roles',
-                    color: Colors.amber,
+                    color: Colors.amber[700]!,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a permisos
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminPermisosScreen(),
+                        ),
+                      );
                     },
                   ),
                   _buildDrawerItem(
                     icon: Icons.help_rounded,
                     title: 'Soporte Técnico',
-                    color: Colors.grey,
+                    color: Colors.blueGrey[600]!,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a ayuda
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminSoporteScreen(),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -352,29 +423,47 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
 
           // Footer del Drawer
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             decoration: BoxDecoration(
               color: Colors.grey[50],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
+              border: Border(
+                top: BorderSide(color: Colors.grey[200]!),
               ),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Divider(),
-                const SizedBox(height: 8),
-                Text(
-                  'Panel Admin v1.0.0',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, 
+                        size: 16, 
+                        color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Panel Admin v1.0.0',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Último acceso: Hoy',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.access_time_rounded, 
+                        size: 14, 
+                        color: Colors.grey[500]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Último acceso: Hoy',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -388,24 +477,62 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     required IconData icon,
     required String title,
     required Color color,
+    bool isActive = false,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(
+        color: isActive ? color.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: isActive
+            ? Border.all(color: color.withOpacity(0.3), width: 1)
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isActive ? color : color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isActive ? Colors.white : color,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: isActive ? color : Colors.grey[800],
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 13,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isActive ? color : Colors.grey[400],
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Icon(icon, color: color, size: 20),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-      ),
-      trailing: Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
-      onTap: onTap,
     );
   }
 
@@ -433,25 +560,26 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
     AuthViewModel authViewModel,
     UserModel? user,
   ) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Bienvenida Admin
           _buildWelcomeSection(context, user),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Estadísticas principales
           _buildAdminStats(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Acciones rápidas de administración
           _buildAdminActions(context),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Reportes pendientes críticos
-          Expanded(child: _buildCriticalReports()),
+          _buildCriticalReports(),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -469,19 +597,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [AppColors.primaryBlue, Color(0xFF1E3A8A)],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: AppColors.primaryBlue.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -494,20 +622,20 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.admin_panel_settings_rounded,
                   color: Colors.white,
-                  size: 24,
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Panel de Control Administrativo',
+                  'Panel de Control',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Colors.white.withOpacity(0.9),
                     fontWeight: FontWeight.w600,
                   ),
@@ -519,16 +647,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
           Text(
             'Bienvenido/a, $userName! 🛠️',
             style: const TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            'Gestiona reportes, usuarios y monitorea el sistema en tiempo real.',
+            'Gestiona reportes, usuarios y monitorea el sistema.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               color: Colors.white.withOpacity(0.9),
               height: 1.4,
             ),
@@ -540,15 +668,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
 
   Widget _buildAdminStats() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -560,51 +688,65 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
               Icon(
                 Icons.analytics_rounded,
                 color: AppColors.primaryBlue,
-                size: 20,
+                size: 18,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               const Text(
                 'Estadísticas del Sistema',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.8,
+          const SizedBox(height: 16),
+          // Usar Row con Expanded en lugar de GridView para evitar overflow
+          Column(
             children: [
-              _AdminStatCard(
-                title: 'Reportes Pendientes',
-                value: '24',
-                change: '+5%',
-                color: AppColors.warningYellow,
-                icon: Icons.pending_actions_rounded,
+              Row(
+                children: [
+                  Expanded(
+                    child: _AdminStatCard(
+                      title: 'Reportes Pendientes',
+                      value: '24',
+                      change: '+5%',
+                      color: AppColors.warningYellow,
+                      icon: Icons.pending_actions_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _AdminStatCard(
+                      title: 'Reportes Resueltos',
+                      value: '156',
+                      change: '+12%',
+                      color: AppColors.actionGreen,
+                      icon: Icons.check_circle_rounded,
+                    ),
+                  ),
+                ],
               ),
-              _AdminStatCard(
-                title: 'Reportes Resueltos',
-                value: '156',
-                change: '+12%',
-                color: AppColors.actionGreen,
-                icon: Icons.check_circle_rounded,
-              ),
-              _AdminStatCard(
-                title: 'Usuarios Activos',
-                value: '1,234',
-                change: '+3%',
-                color: AppColors.infoBlue,
-                icon: Icons.people_alt_rounded,
-              ),
-              _AdminStatCard(
-                title: 'Tiempo Respuesta',
-                value: '2.3h',
-                change: '-15%',
-                color: AppColors.chiclayoOrange,
-                icon: Icons.timer_rounded,
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _AdminStatCard(
+                      title: 'Usuarios Activos',
+                      value: '1,234',
+                      change: '+3%',
+                      color: AppColors.infoBlue,
+                      icon: Icons.people_alt_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _AdminStatCard(
+                      title: 'Tiempo Respuesta',
+                      value: '2.3h',
+                      change: '-15%',
+                      color: AppColors.chiclayoOrange,
+                      icon: Icons.timer_rounded,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -618,67 +760,82 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Acciones de Administración',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          'Acciones Rápidas',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.4,
-          children: [
-            _AdminActionCard(
-              icon: Icons.assignment_rounded,
-              title: 'Gestionar Reportes',
-              subtitle: 'Ver y asignar',
-              color: AppColors.primaryBlue,
-              gradient: LinearGradient(
-                colors: [AppColors.primaryBlue, AppColors.infoBlue],
-              ),
-              onTap: () {
-                // Navegar a gestión de reportes
-              },
-            ),
-            _AdminActionCard(
-              icon: Icons.people_rounded,
-              title: 'Usuarios',
-              subtitle: 'Gestionar usuarios',
-              color: AppColors.actionGreen,
-              gradient: LinearGradient(
-                colors: [AppColors.actionGreen, Colors.green],
-              ),
-              onTap: () {
-                // Navegar a gestión de usuarios
-              },
-            ),
-            _AdminActionCard(
-              icon: Icons.analytics_rounded,
-              title: 'Estadísticas',
-              subtitle: 'Reportes avanzados',
-              color: AppColors.chiclayoOrange,
-              gradient: LinearGradient(
-                colors: [AppColors.chiclayoOrange, Colors.orange],
-              ),
-              onTap: () {
-                // Navegar a estadísticas
-              },
-            ),
-            _AdminActionCard(
-              icon: Icons.settings_rounded,
-              title: 'Configuración',
-              subtitle: 'Ajustes del sistema',
-              color: Colors.purple,
-              gradient: const LinearGradient(
-                colors: [Colors.purple, Colors.purpleAccent],
-              ),
-              onTap: () {
-                // Navegar a configuración
-              },
-            ),
-          ],
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 360;
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: isSmallScreen ? 1.2 : 1.4,
+              children: [
+                _AdminActionCard(
+                  icon: Icons.assignment_rounded,
+                  title: 'Gestionar Reportes',
+                  subtitle: 'Ver y asignar',
+                  color: AppColors.primaryBlue,
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryBlue, AppColors.infoBlue],
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminReportesScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _AdminActionCard(
+                  icon: Icons.people_rounded,
+                  title: 'Usuarios',
+                  subtitle: 'Gestionar usuarios',
+                  color: AppColors.actionGreen,
+                  gradient: LinearGradient(
+                    colors: [AppColors.actionGreen, Colors.green],
+                  ),
+                  onTap: () {
+                    Navigator.pushNamed(context, '/manage_users');
+                  },
+                ),
+                _AdminActionCard(
+                  icon: Icons.analytics_rounded,
+                  title: 'Estadísticas',
+                  subtitle: 'Reportes avanzados',
+                  color: AppColors.chiclayoOrange,
+                  gradient: LinearGradient(
+                    colors: [AppColors.chiclayoOrange, Colors.orange],
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminEstadisticasScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _AdminActionCard(
+                  icon: Icons.settings_rounded,
+                  title: 'Configuración',
+                  subtitle: 'Ajustes del sistema',
+                  color: Colors.purple,
+                  gradient: const LinearGradient(
+                    colors: [Colors.purple, Colors.purpleAccent],
+                  ),
+                  onTap: () {
+                    Navigator.pushNamed(context, '/settings');
+                  },
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -693,70 +850,72 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             Icon(
               Icons.warning_amber_rounded,
               color: AppColors.criticalRed,
-              size: 20,
+              size: 18,
             ),
-            const SizedBox(width: 8),
-            const Text(
-              'Reportes Críticos Pendientes',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            const SizedBox(width: 6),
+            const Expanded(
+              child: Text(
+                'Reportes Críticos',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
             ),
-            const Spacer(),
             TextButton(
               onPressed: () {
-                // Ver todos los reportes críticos
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminReportesScreen(),
+                  ),
+                );
               },
               child: Text(
                 'Ver todos',
                 style: TextStyle(
                   color: AppColors.primaryBlue,
                   fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: ListView.builder(
-            itemCount: 4,
-            itemBuilder: (context, index) {
-              final reports = [
-                _CriticalReportData(
-                  'Bache crítico en Av. Balta',
-                  'Vía Principal',
-                  'ALTA',
-                  'Hace 6 horas',
-                  AppColors.criticalRed,
-                  Icons.map_rounded,
-                ),
-                _CriticalReportData(
-                  'Semáforo fuera de servicio',
-                  'Intersección Balta-Leguía',
-                  'URGENTE',
-                  'Hace 3 horas',
-                  AppColors.criticalRed,
-                  Icons.traffic_rounded,
-                ),
-                _CriticalReportData(
-                  'Inundación en parque',
-                  'Parque Principal',
-                  'MEDIA',
-                  'Hace 1 día',
-                  AppColors.warningYellow,
-                  Icons.water_damage_rounded,
-                ),
-                _CriticalReportData(
-                  'Alumbrado masivo dañado',
-                  'Av. Salaverry',
-                  'ALTA',
-                  'Hace 2 días',
-                  AppColors.criticalRed,
-                  Icons.lightbulb_rounded,
-                ),
-              ];
-              return _CriticalReportItem(data: reports[index]);
-            },
-          ),
+        const SizedBox(height: 12),
+        // Usar Column en lugar de ListView.builder para evitar overflow
+        Column(
+          children: [
+            _CriticalReportItem(
+              data: _CriticalReportData(
+                'Bache crítico en Av. Balta',
+                'Vía Principal',
+                'ALTA',
+                'Hace 6h',
+                AppColors.criticalRed,
+                Icons.map_rounded,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _CriticalReportItem(
+              data: _CriticalReportData(
+                'Semáforo fuera de servicio',
+                'Intersección Balta-Leguía',
+                'URGENTE',
+                'Hace 3h',
+                AppColors.criticalRed,
+                Icons.traffic_rounded,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _CriticalReportItem(
+              data: _CriticalReportData(
+                'Inundación en parque',
+                'Parque Principal',
+                'MEDIA',
+                'Hace 1d',
+                AppColors.warningYellow,
+                Icons.water_damage_rounded,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -772,7 +931,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
             borderRadius: BorderRadius.circular(20),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -783,16 +942,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Cerrar Sesión Admin',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  'Cerrar Sesión',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   '¿Estás seguro de que quieres cerrar sesión?',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -893,7 +1052,7 @@ class _AdminStatCard extends StatelessWidget {
     final isPositive = change.startsWith('+');
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
@@ -905,21 +1064,21 @@ class _AdminStatCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(icon, color: color, size: 18),
+                child: Icon(icon, color: color, size: 16),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                 decoration: BoxDecoration(
                   color: isPositive
                       ? AppColors.actionGreen.withOpacity(0.1)
                       : AppColors.criticalRed.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   change,
@@ -927,30 +1086,31 @@ class _AdminStatCard extends StatelessWidget {
                     color: isPositive
                         ? AppColors.actionGreen
                         : AppColors.criticalRed,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 10,
               color: Colors.grey,
               fontWeight: FontWeight.w500,
             ),
+            maxLines: 2,
           ),
         ],
       ),
@@ -978,15 +1138,15 @@ class _AdminActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             gradient: gradient,
           ),
           child: Column(
@@ -994,27 +1154,27 @@ class _AdminActionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: Colors.white, size: 20),
+                child: Icon(icon, color: Colors.white, size: 18),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
                 title,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 13,
                 ),
               ),
               Text(
                 subtitle,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
-                  fontSize: 11,
+                  fontSize: 10,
                 ),
               ),
             ],
@@ -1051,27 +1211,27 @@ class _CriticalReportItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 0),
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         decoration: BoxDecoration(
           border: Border(left: BorderSide(color: data.priorityColor, width: 4)),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: data.priorityColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(data.icon, color: data.priorityColor, size: 20),
+                child: Icon(data.icon, color: data.priorityColor, size: 18),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1080,32 +1240,32 @@ class _CriticalReportItem extends StatelessWidget {
                       data.title,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       data.location,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
+                            horizontal: 6,
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
                             color: data.priorityColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             data.priority,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 9,
                               color: data.priorityColor,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1115,7 +1275,7 @@ class _CriticalReportItem extends StatelessWidget {
                         Text(
                           data.date,
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             color: Colors.grey,
                           ),
                         ),
@@ -1124,7 +1284,11 @@ class _CriticalReportItem extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.grey[400],
+                size: 20,
+              ),
             ],
           ),
         ),

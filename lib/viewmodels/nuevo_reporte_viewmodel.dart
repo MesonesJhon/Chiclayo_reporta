@@ -32,7 +32,7 @@ class NuevoReporteViewModel with ChangeNotifier {
   String _titulo = '';
   String _descripcion = '';
   String _prioridad = 'media'; // 'alta', 'media', 'baja'
-  bool _esPublico = false;
+  bool _esPublico = true;
 
   // Ubicación
   double? _latitud;
@@ -157,12 +157,6 @@ class NuevoReporteViewModel with ChangeNotifier {
       _prioridad = value;
       notifyListeners();
     }
-  }
-
-  /// Toggle es público
-  void toggleEsPublico() {
-    _esPublico = !_esPublico;
-    notifyListeners();
   }
 
   /// Establecer ubicación
@@ -391,7 +385,7 @@ class NuevoReporteViewModel with ChangeNotifier {
     _titulo = '';
     _descripcion = '';
     _prioridad = 'media';
-    _esPublico = false;
+    _esPublico = true;
     _latitud = null;
     _longitud = null;
     _direccion = '';

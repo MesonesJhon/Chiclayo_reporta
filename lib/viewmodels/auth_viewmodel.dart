@@ -272,4 +272,100 @@ class AuthViewModel with ChangeNotifier {
     _errorMessage = '';
     notifyListeners();
   }
+
+  // Método para actualizar usuario
+  Future<bool> updateUser({String? email, String? telefono}) async {
+    if (_token == null) return false;
+
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      final result = await _authService.updateUser(
+        token: _token!,
+        email: email,
+        telefono: telefono,
+      );
+
+      _isLoading = false;
+
+      if (result['success'] == true) {
+        // Actualizar usuario localmente
+        if (result['data'] != null) {
+          // Crear nuevo objeto UserModel con los datos actualizados
+          // Asumiendo que el backend devuelve el objeto usuario completo
+          // Si no, actualizamos solo los campos cambiados en el objeto actual
+          try {
+            // Intentar parsear el usuario completo si viene en la respuesta
+            // Nota: UserModel.fromJson podría necesitar ajustes si la estructura varía
+            // Por ahora actualizamos manualmente los campos del usuario actual
+            if (_currentUser != null) {
+              _currentUser = _currentUser!.copyWith(
+                email: email ?? _currentUser!.email,
+                telefono: telefono ?? _currentUser!.telefono,
+              );
+
+              // Guardar cambios en SharedPreferences
+              await _saveAuthData();
+            }
+          } catch (e) {
+            print('Error actualizando usuario local: $e');
+          }
+        }
+
+        _errorMessage = '';
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'] ?? 'Error al actualizar perfil';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Error de conexión: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Método para cambiar contraseña
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    if (_token == null) return false;
+
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      final result = await _authService.changePassword(
+        token: _token!,
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      );
+
+      _isLoading = false;
+
+      if (result['success'] == true) {
+        _errorMessage = '';
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'] ?? 'Error al cambiar contraseña';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Error de conexión: $e';
+      notifyListeners();
+      return false;
+    }
+  }
 }

@@ -1,4 +1,7 @@
 class ApiConstants {
+  // Google Maps
+  static const String googleMapsApiKey = 'AIzaSyBIU3MpJOw8_PwFyGIlv64Yp4L9Ps72nkk';
+  
   // API de Decolecta (RENIEC)
   static const String decolectaBaseUrl =
       'https://api.decolecta.com'; // .com no .pe
@@ -15,6 +18,10 @@ class ApiConstants {
   static const String authRegistro = '/api/auth/registro';
   static const String authLogin = '/api/auth/login';
   static const String authLogout = '/api/auth/logout';
+  static const String authForgotPassword = '/api/auth/forgot-password';
+  static const String authResetPassword = '/api/auth/reset-password';
+  static const String authEditarUsuario = '/api/auth/editar-usuario';
+  static const String authCambiarPassword = '/api/auth/cambiar-password';
 
   // Endpoints de reportes
   static const String reportesCrear = '/api/reportes/crear';
@@ -23,6 +30,13 @@ class ApiConstants {
   static const String reportesEditar = '/api/reportes/editar';
   static const String reportesEliminar = '/api/reportes/delete';
   static const String reportesPublicos = '/api/reportes/publicos';
+  static const String reportesTodos = '/api/reportes/todos';
+  static const String reportesActualizarEstado =
+      '/api/reportes'; // + /<id>/estado
+
+  // Endpoints de usuarios
+  static const String usuarios = '/api/usuarios'; // GET
+  static const String usuariosDetalle = '/api/usuarios/'; // + ID (PUT status)
 }
 
 class AppConstants {

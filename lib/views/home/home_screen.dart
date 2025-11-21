@@ -5,6 +5,8 @@ import '../../viewmodels/mis_reportes_viewmodel.dart';
 import '../../models/user_model.dart';
 import '../../models/reporte_model.dart';
 import '../../utils/app_colors.dart';
+import '../../services/notification_service.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -90,48 +92,55 @@ class _HomeScreenState extends State<HomeScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
-      actions: [_buildNotificationButton(), _buildLogoutButton(context)],
-    );
-  }
-
-  Widget _buildNotificationButton() {
-    return Stack(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: () {
-            // Navegar a notificaciones
+      actions: [
+        Consumer<NotificationService>(
+          builder: (context, notificationService, child) {
+            return Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                if (notificationService.unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
+                      child: Text(
+                        '${notificationService.unreadCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            );
           },
         ),
-        Positioned(
-          right: 8,
-          top: 8,
-          child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: const BoxDecoration(
-              color: AppColors.chiclayoOrange,
-              shape: BoxShape.circle,
-            ),
-            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-            child: const Text(
-              '3',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
+        IconButton(
+          icon: const Icon(Icons.logout_rounded),
+          onPressed: () => _showLogoutDialog(context),
         ),
       ],
-    );
-  }
-
-  Widget _buildLogoutButton(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.logout_rounded),
-      onPressed: () => _showLogoutDialog(context),
     );
   }
 
@@ -236,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen>
                     color: AppColors.actionGreen,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a mis reportes
+                      Navigator.pushNamed(context, '/mis_reportes');
                     },
                   ),
                   _buildDrawerItem(
@@ -249,12 +258,12 @@ class _HomeScreenState extends State<HomeScreen>
                     },
                   ),
                   _buildDrawerItem(
-                    icon: Icons.bar_chart_rounded,
-                    title: 'Estadísticas',
-                    color: AppColors.infoBlue,
+                    icon: Icons.track_changes_rounded,
+                    title: 'Seguimiento',
+                    color: Colors.purple,
                     onTap: () {
                       Navigator.pop(context);
-                      // Navegar a estadísticas
+                      Navigator.pushNamed(context, '/seguimiento');
                     },
                   ),
                   const Divider(height: 40, indent: 20, endIndent: 20),
@@ -599,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen>
                 colors: [Colors.purple, Colors.purpleAccent],
               ),
               onTap: () {
-                // Navegar a seguimiento
+                Navigator.pushNamed(context, '/seguimiento');
               },
             ),
           ],

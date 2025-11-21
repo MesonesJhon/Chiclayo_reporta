@@ -167,4 +167,205 @@ class AuthService {
       print('Error en logout: $e');
     }
   }
+
+  /// Solicitar código de recuperación de contraseña
+  Future<Map<String, dynamic>> forgotPassword({
+    required String dni,
+    required String email,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConstants.backendBaseUrl}${ApiConstants.authForgotPassword}',
+      );
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'dni': dni, 'email': email}),
+      );
+
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Código enviado correctamente',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Error al solicitar código',
+        };
+      }
+    } on http.ClientException {
+      return {
+        'success': false,
+        'message':
+            'Error de conexión. Verifica tu internet e intenta nuevamente.',
+      };
+    } catch (e) {
+      print('Error en forgotPassword: $e');
+      return {
+        'success': false,
+        'message': 'Error inesperado. Por favor, intenta nuevamente.',
+      };
+    }
+  }
+
+  /// Restablecer contraseña con código de verificación
+  Future<Map<String, dynamic>> resetPassword({
+    required String dni,
+    required String codigo,
+    required String nuevoPassword,
+    required String confirmarPassword,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConstants.backendBaseUrl}${ApiConstants.authResetPassword}',
+      );
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'dni': dni,
+          'codigo': codigo,
+          'nuevo_password': nuevoPassword,
+          'confirmar_password': confirmarPassword,
+        }),
+      );
+
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Contraseña actualizada correctamente',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Error al restablecer contraseña',
+        };
+      }
+    } on http.ClientException {
+      return {
+        'success': false,
+        'message':
+            'Error de conexión. Verifica tu internet e intenta nuevamente.',
+      };
+    } catch (e) {
+      print('Error en resetPassword: $e');
+      return {
+        'success': false,
+        'message': 'Error inesperado. Por favor, intenta nuevamente.',
+      };
+    }
+  }
+
+  /// Actualizar datos del usuario
+  Future<Map<String, dynamic>> updateUser({
+    required String token,
+    String? email,
+    String? telefono,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConstants.backendBaseUrl}${ApiConstants.authEditarUsuario}',
+      );
+
+      final Map<String, dynamic> body = {};
+      if (email != null) body['email'] = email;
+      if (telefono != null) body['telefono'] = telefono;
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      );
+
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        return {
+          'success': true,
+          'data': data['data'],
+          'message': data['message'] ?? 'Usuario actualizado correctamente',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Error al actualizar usuario',
+        };
+      }
+    } on http.ClientException {
+      return {
+        'success': false,
+        'message':
+            'Error de conexión. Verifica tu internet e intenta nuevamente.',
+      };
+    } catch (e) {
+      print('Error en updateUser: $e');
+      return {
+        'success': false,
+        'message': 'Error inesperado. Por favor, intenta nuevamente.',
+      };
+    }
+  }
+
+  /// Cambiar contraseña
+  Future<Map<String, dynamic>> changePassword({
+    required String token,
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConstants.backendBaseUrl}${ApiConstants.authCambiarPassword}',
+      );
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'password_actual': currentPassword,
+          'nuevo_password': newPassword,
+          'confirmar_password': confirmPassword,
+        }),
+      );
+
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Contraseña actualizada correctamente',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Error al cambiar contraseña',
+        };
+      }
+    } on http.ClientException {
+      return {
+        'success': false,
+        'message':
+            'Error de conexión. Verifica tu internet e intenta nuevamente.',
+      };
+    } catch (e) {
+      print('Error en changePassword: $e');
+      return {
+        'success': false,
+        'message': 'Error inesperado. Por favor, intenta nuevamente.',
+      };
+    }
+  }
 }

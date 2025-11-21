@@ -56,4 +56,60 @@ class MisReportesViewModel extends ChangeNotifier {
     }
     return response;
   }
+
+  /// Actualizar el estado de un reporte
+  Future<ApiResponse<bool>> actualizarEstadoReporte(
+    int reporteId,
+    String nuevoEstado,
+  ) async {
+    // Actualización optimista
+    final index = _reportes.indexWhere((r) => r.id == reporteId);
+    ReporteModel? reporteOriginal;
+
+    if (index != -1) {
+      reporteOriginal = _reportes[index];
+      // Crear una copia con el nuevo estado
+      _reportes[index] = ReporteModel(
+        id: reporteOriginal.id,
+        codigoSeguimiento: reporteOriginal.codigoSeguimiento,
+        usuarioId: reporteOriginal.usuarioId,
+        categoriaId: reporteOriginal.categoriaId,
+        categoria: reporteOriginal.categoria,
+        ubicacionId: reporteOriginal.ubicacionId,
+        ubicacion: reporteOriginal.ubicacion,
+        titulo: reporteOriginal.titulo,
+        descripcion: reporteOriginal.descripcion,
+        estado: nuevoEstado,
+        prioridad: reporteOriginal.prioridad,
+        esPublico: reporteOriginal.esPublico,
+        fechaCreacion: reporteOriginal.fechaCreacion,
+        fechaActualizacion: DateTime.now(),
+        fechaCierre: reporteOriginal.fechaCierre,
+        archivos: reporteOriginal.archivos,
+      );
+      notifyListeners();
+    }
+
+    // Llamar al servicio
+    final response = await _service.actualizarEstadoReporte(
+      reporteId: reporteId,
+      nuevoEstado: nuevoEstado,
+    );
+
+    if (response.success && response.data != null) {
+      // Actualizar con los datos del servidor
+      if (index != -1) {
+        _reportes[index] = response.data!;
+        notifyListeners();
+      }
+      return ApiResponse.success(true, message: response.message);
+    } else {
+      // Revertir si falla
+      if (index != -1 && reporteOriginal != null) {
+        _reportes[index] = reporteOriginal;
+        notifyListeners();
+      }
+      return ApiResponse.error(response.message);
+    }
+  }
 }

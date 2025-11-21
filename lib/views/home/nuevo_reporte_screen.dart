@@ -131,8 +131,7 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
                   const SizedBox(height: 24),
                   _buildPrioridadSection(viewModel),
                   const SizedBox(height: 24),
-                  _buildEsPublicoSection(viewModel),
-                  const SizedBox(height: 32),
+
                   if (viewModel.submitErrorMessage.isNotEmpty)
                     _buildErrorMessage(viewModel.submitErrorMessage),
                   _buildButtons(viewModel),
@@ -651,38 +650,6 @@ class _NuevoReporteScreenState extends State<NuevoReporteScreen> {
       labelStyle: TextStyle(
         color: isSelected ? color : Colors.black87,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-    );
-  }
-
-  Widget _buildEsPublicoSection(NuevoReporteViewModel viewModel) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _boxDecoration(),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Reporte público',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Otros usuarios podrán ver este reporte',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: viewModel.esPublico,
-            onChanged: (_) => viewModel.toggleEsPublico(),
-            activeColor: AppColors.actionGreen,
-          ),
-        ],
       ),
     );
   }

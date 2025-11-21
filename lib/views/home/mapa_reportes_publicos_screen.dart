@@ -379,11 +379,13 @@ class _DetalleReporteSheet extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (categoria.icono != null)
-                              Text(
-                                categoria.icono!,
-                                style: const TextStyle(fontSize: 16),
+                              Icon(
+                                _getIconData(categoria.icono!),
+                                size: 18,
+                                color: AppColors.primaryBlue,
                               ),
-                            const SizedBox(width: 4),
+                            if (categoria.icono != null)
+                              const SizedBox(width: 4),
                             Text(
                               categoria.nombre,
                               style: TextStyle(
@@ -503,7 +505,9 @@ class _DetalleReporteSheet extends StatelessWidget {
                 ],
 
                 // Multimedia
-                if (reporte.archivos.isNotEmpty) ...[
+                if (reporte.archivos.isNotEmpty &&
+                    (reporte.estado.toLowerCase() == 'en_proceso' ||
+                        reporte.estado.toLowerCase() == 'resuelto')) ...[
                   const Text(
                     'Multimedia',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
@@ -599,6 +603,41 @@ class _DetalleReporteSheet extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData _getIconData(String iconName) {
+    switch (iconName.toLowerCase()) {
+      case 'water':
+      case 'agua':
+        return Icons.water_drop;
+      case 'fire':
+      case 'fuego':
+        return Icons.local_fire_department;
+      case 'trash':
+      case 'basura':
+        return Icons.delete;
+      case 'light':
+      case 'luz':
+      case 'alumbrado':
+        return Icons.lightbulb;
+      case 'road':
+      case 'pista':
+      case 'bache':
+        return Icons.add_road;
+      case 'park':
+      case 'parque':
+      case 'arbol':
+        return Icons.park;
+      case 'security':
+      case 'seguridad':
+      case 'robo':
+        return Icons.security;
+      case 'noise':
+      case 'ruido':
+        return Icons.volume_up;
+      default:
+        return Icons.category;
+    }
   }
 
   Color _getEstadoColor(String estado) {

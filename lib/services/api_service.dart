@@ -159,6 +159,22 @@ class ApiService {
     }
   }
 
+  Future<http.Response> patch(
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$_baseUrl$endpoint'),
+        headers: _headers,
+        body: json.encode(data),
+      );
+      return response;
+    } catch (e) {
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
   Future<http.Response> delete(String endpoint) async {
     try {
       final response = await http.delete(

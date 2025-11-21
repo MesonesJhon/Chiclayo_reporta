@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../models/user_model.dart';
 import '../../utils/app_colors.dart';
+import '../../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -56,12 +57,30 @@ class _SettingsScreenState extends State<SettingsScreen>
     _loadUserData();
   }
 
-  void _loadUserData() {
-    // Aquí cargarías los datos reales del usuario
-    _nameController.text = 'María';
-    _lastNameController.text = 'García López';
-    _emailController.text = 'maria.garcia@email.com';
-    _phoneController.text = '+51 987 654 321';
+  void _loadUserData() async {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final notificationService = Provider.of<NotificationService>(
+      context,
+      listen: false,
+    );
+
+    final user = authViewModel.currentUser;
+    final notificationsEnabled = await notificationService
+        .getNotificationsEnabled();
+
+    if (mounted) {
+      setState(() {
+        _pushNotifications = notificationsEnabled;
+      });
+    }
+
+    if (user != null) {
+      _nameController.text = user.nombres;
+      _lastNameController.text =
+          '${user.apellidoPaterno} ${user.apellidoMaterno}';
+      _emailController.text = user.email ?? '';
+      _phoneController.text = user.telefono ?? '';
+    }
   }
 
   @override
@@ -194,12 +213,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                   controller: _nameController,
                   label: 'Nombre',
                   icon: Icons.person_outline_rounded,
+                  readOnly: true,
                 ),
                 const SizedBox(height: 16),
                 _buildFormField(
                   controller: _lastNameController,
                   label: 'Apellidos',
                   icon: Icons.person_outline_rounded,
+                  readOnly: true,
                 ),
                 const SizedBox(height: 16),
                 _buildFormField(
@@ -221,20 +242,36 @@ class _SettingsScreenState extends State<SettingsScreen>
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _savePersonalInfo,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: const Text(
-                'Guardar cambios',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-              ),
+            child: Consumer<AuthViewModel>(
+              builder: (context, viewModel, child) {
+                return ElevatedButton(
+                  onPressed: viewModel.isLoading ? null : _savePersonalInfo,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: viewModel.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Guardar cambios',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                );
+              },
             ),
           ),
         ],
@@ -247,17 +284,22 @@ class _SettingsScreenState extends State<SettingsScreen>
     required String label,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    bool readOnly = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: readOnly ? Colors.grey[200] : Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(fontSize: 14),
+        readOnly: readOnly,
+        style: TextStyle(
+          fontSize: 14,
+          color: readOnly ? Colors.grey[600] : Colors.black,
+        ),
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -373,6 +415,10 @@ class _SettingsScreenState extends State<SettingsScreen>
               setState(() {
                 _pushNotifications = value;
               });
+              Provider.of<NotificationService>(
+                context,
+                listen: false,
+              ).setNotificationsEnabled(value);
             },
             icon: Icons.notifications_active_rounded,
           ),
@@ -574,76 +620,240 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  void _savePersonalInfo() {
+  Future<void> _savePersonalInfo() async {
     if (_formKey.currentState!.validate()) {
-      // Lógica para guardar la información personal
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Información guardada exitosamente'),
-          backgroundColor: AppColors.actionGreen,
-        ),
+      final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+
+      final success = await authViewModel.updateUser(
+        email: _emailController.text.trim(),
+        telefono: _phoneController.text.trim(),
       );
+
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Información actualizada correctamente'),
+            backgroundColor: AppColors.actionGreen,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authViewModel.errorMessage),
+            backgroundColor: AppColors.criticalRed,
+          ),
+        );
+      }
     }
   }
 
   void _showChangePasswordDialog(BuildContext context) {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppColors.criticalRed.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.lock_reset_rounded,
-                    size: 30,
-                    color: AppColors.criticalRed,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Cambiar Contraseña',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Función de cambio de contraseña en desarrollo...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.criticalRed.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.lock_reset_rounded,
+                          size: 30,
+                          color: AppColors.criticalRed,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Entendido'),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Cambiar Contraseña',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildPasswordField(
+                        controller: currentPasswordController,
+                        label: 'Contraseña actual',
+                        obscureText: obscureCurrent,
+                        onToggleVisibility: () {
+                          setState(() => obscureCurrent = !obscureCurrent);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPasswordField(
+                        controller: newPasswordController,
+                        label: 'Nueva contraseña',
+                        obscureText: obscureNew,
+                        onToggleVisibility: () {
+                          setState(() => obscureNew = !obscureNew);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPasswordField(
+                        controller: confirmPasswordController,
+                        label: 'Confirmar contraseña',
+                        obscureText: obscureConfirm,
+                        onToggleVisibility: () {
+                          setState(() => obscureConfirm = !obscureConfirm);
+                        },
+                        validator: (value) {
+                          if (value != newPasswordController.text) {
+                            return 'Las contraseñas no coinciden';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Consumer<AuthViewModel>(
+                          builder: (context, viewModel, child) {
+                            return ElevatedButton(
+                              onPressed: viewModel.isLoading
+                                  ? null
+                                  : () async {
+                                      if (formKey.currentState!.validate()) {
+                                        final success = await viewModel
+                                            .changePassword(
+                                              currentPassword:
+                                                  currentPasswordController
+                                                      .text,
+                                              newPassword:
+                                                  newPasswordController.text,
+                                              confirmPassword:
+                                                  confirmPasswordController
+                                                      .text,
+                                            );
+
+                                        if (!context.mounted) return;
+
+                                        if (success) {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: const Text(
+                                                'Contraseña actualizada correctamente',
+                                              ),
+                                              backgroundColor:
+                                                  AppColors.actionGreen,
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                viewModel.errorMessage,
+                                              ),
+                                              backgroundColor:
+                                                  AppColors.criticalRed,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBlue,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: viewModel.isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Actualizar Contraseña'),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancelar'),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool obscureText,
+    required VoidCallback onToggleVisibility,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      validator:
+          validator ??
+          (value) {
+            if (value == null || value.isEmpty) {
+              return 'Este campo es obligatorio';
+            }
+            if (value.length < 6) {
+              return 'Mínimo 6 caracteres';
+            }
+            return null;
+          },
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: const Icon(Icons.lock_outline_rounded),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscureText
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+          ),
+          onPressed: onToggleVisibility,
+        ),
+      ),
     );
   }
 }

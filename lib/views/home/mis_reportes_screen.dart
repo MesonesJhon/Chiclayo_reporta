@@ -697,6 +697,9 @@ class _ReporteCard extends StatelessWidget {
                             direccion: reporte.ubicacion?.direccion,
                             latitude: reporte.ubicacion?.latitud,
                             longitude: reporte.ubicacion?.longitud,
+                            enableRouting: true,
+                            showRouteButton: true,
+                            buttonMode: 'center_location',
                           ),
                         ),
                       );

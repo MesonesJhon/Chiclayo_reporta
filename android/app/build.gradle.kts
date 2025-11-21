@@ -11,8 +11,12 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Estás usando Java 11, se mantiene
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+
+        // 👇 ACTIVAMOS EL DESUGARING
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -41,4 +45,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// 👇 ESTE BLOQUE ES NUEVO
+dependencies {
+    // Dependencia necesaria para core library desugaring
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }

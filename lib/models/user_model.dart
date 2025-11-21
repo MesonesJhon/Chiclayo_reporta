@@ -8,6 +8,7 @@ class UserModel {
   final String? email;
   final String? telefono;
   final String tipo;
+  final String estado;
   final DateTime? fechaRegistro;
   final DateTime? ultimoLogin;
 
@@ -21,6 +22,7 @@ class UserModel {
     this.email,
     this.telefono,
     required this.tipo,
+    this.estado = 'activo',
     this.fechaRegistro,
     this.ultimoLogin,
   });
@@ -36,6 +38,7 @@ class UserModel {
       email: json['email'] as String?,
       telefono: json['telefono'] as String?,
       tipo: json['tipo'] as String? ?? 'ciudadano',
+      estado: json['estado'] as String? ?? 'activo',
       fechaRegistro: _parseDateTime(json['fecha_registro']),
       ultimoLogin: _parseDateTime(json['ultimo_login']),
     );
@@ -111,6 +114,7 @@ class UserModel {
       'email': email,
       'telefono': telefono,
       'tipo': tipo,
+      'estado': estado,
       'fecha_registro': fechaRegistro?.toIso8601String(),
       'ultimo_login': ultimoLogin?.toIso8601String(),
     };
@@ -128,5 +132,35 @@ class UserModel {
   bool get isCiudadano {
     final userType = tipo.toLowerCase().trim();
     return userType == 'ciudadano' || userType == 'user';
+  }
+
+  UserModel copyWith({
+    int? id,
+    String? dni,
+    String? nombres,
+    String? apellidoPaterno,
+    String? apellidoMaterno,
+    String? nombreCompleto,
+    String? email,
+    String? telefono,
+    String? tipo,
+    String? estado,
+    DateTime? fechaRegistro,
+    DateTime? ultimoLogin,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      dni: dni ?? this.dni,
+      nombres: nombres ?? this.nombres,
+      apellidoPaterno: apellidoPaterno ?? this.apellidoPaterno,
+      apellidoMaterno: apellidoMaterno ?? this.apellidoMaterno,
+      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      email: email ?? this.email,
+      telefono: telefono ?? this.telefono,
+      tipo: tipo ?? this.tipo,
+      estado: estado ?? this.estado,
+      fechaRegistro: fechaRegistro ?? this.fechaRegistro,
+      ultimoLogin: ultimoLogin ?? this.ultimoLogin,
+    );
   }
 }

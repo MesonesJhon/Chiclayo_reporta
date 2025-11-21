@@ -14,9 +14,6 @@ class ReporteService {
     try {
       final response = await _apiService.get(ApiConstants.reportesCategorias);
 
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       // Verificar si la respuesta es válida
       if (response.body.isEmpty) {
         return ApiResponse.error(
@@ -38,7 +35,6 @@ class ReporteService {
                       item as Map<String, dynamic>,
                     );
                   } catch (e) {
-                    print('Error parseando categoría: $e');
                     return null;
                   }
                 })
@@ -65,14 +61,12 @@ class ReporteService {
         final errorMsg =
             data['message'] as String? ??
             'Error al obtener categorías (Status: ${response.statusCode})';
-        print('Error en respuesta: $errorMsg');
+
         return ApiResponse.error(errorMsg, statusCode: response.statusCode);
       }
     } on FormatException catch (e) {
-      print('FormatException: $e');
       return ApiResponse.error('Error al procesar la respuesta: $e');
     } catch (e) {
-      print('Error obteniendo categorías: $e');
       return ApiResponse.error('Error de conexión: ${e.toString()}');
     }
   }
@@ -223,9 +217,6 @@ class ReporteService {
     try {
       final response = await _apiService.get(ApiConstants.reportesMisReportes);
 
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.body.isEmpty) {
         return ApiResponse.error(
           'Respuesta vacía del servidor',
@@ -243,7 +234,6 @@ class ReporteService {
                   try {
                     return ReporteModel.fromJson(item as Map<String, dynamic>);
                   } catch (e) {
-                    print('Error parseando reporte: $e');
                     return null;
                   }
                 })
@@ -270,14 +260,12 @@ class ReporteService {
         final errorMsg =
             data['message'] as String? ??
             'Error al obtener reportes (Status: ${response.statusCode})';
-        print('Error en respuesta: $errorMsg');
+
         return ApiResponse.error(errorMsg, statusCode: response.statusCode);
       }
     } on FormatException catch (e) {
-      print('FormatException: $e');
       return ApiResponse.error('Error al procesar la respuesta: $e');
     } catch (e) {
-      print('Error obteniendo reportes: $e');
       return ApiResponse.error('Error de conexión: ${e.toString()}');
     }
   }
@@ -287,9 +275,6 @@ class ReporteService {
     try {
       final response = await _apiService.get(ApiConstants.reportesPublicos);
 
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.body.isEmpty) {
         return ApiResponse.error(
           'Respuesta vacía del servidor',
@@ -307,7 +292,6 @@ class ReporteService {
                   try {
                     return ReporteModel.fromJson(item as Map<String, dynamic>);
                   } catch (e) {
-                    print('Error parseando reporte: $e');
                     return null;
                   }
                 })
@@ -334,14 +318,166 @@ class ReporteService {
         final errorMsg =
             data['message'] as String? ??
             'Error al obtener reportes (Status: ${response.statusCode})';
-        print('Error en respuesta: $errorMsg');
+
         return ApiResponse.error(errorMsg, statusCode: response.statusCode);
       }
     } on FormatException catch (e) {
-      print('FormatException: $e');
       return ApiResponse.error('Error al procesar la respuesta: $e');
     } catch (e) {
-      print('Error obteniendo reportes públicos: $e');
+      return ApiResponse.error('Error de conexión: ${e.toString()}');
+    }
+  }
+
+  /// Obtener todos los reportes (para administradores)
+  Future<ApiResponse<List<ReporteModel>>> obtenerTodosReportes() async {
+    try {
+      final response = await _apiService.get(ApiConstants.reportesTodos);
+
+      if (response.body.isEmpty) {
+        return ApiResponse.error(
+          'Respuesta vacía del servidor',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        if (data['data'] != null && data['data'] is List) {
+          try {
+            final reportesList = <ReporteModel>[];
+            final items = data['data'] as List;
+
+            print('📦 Procesando ${items.length} reportes...');
+
+            for (var item in items) {
+              try {
+                if (item is Map<String, dynamic>) {
+                  final reporte = ReporteModel.fromJson(item);
+                  reportesList.add(reporte);
+                }
+              } catch (e, stackTrace) {
+                // Log del error pero continuar con los demás reportes
+                print('⚠️ Error al parsear un reporte: $e');
+                print('   Stack trace: $stackTrace');
+                // Continuar con el siguiente reporte en lugar de fallar todo
+              }
+            }
+
+            print(
+              '✅ Reportes parseados correctamente: ${reportesList.length} de ${items.length}',
+            );
+
+            return ApiResponse.success(
+              reportesList,
+              message: data['message'] as String? ?? '',
+            );
+          } catch (e) {
+            print('❌ Error general al procesar los reportes: $e');
+            return ApiResponse.error(
+              'Error al procesar los reportes: $e',
+              statusCode: response.statusCode,
+            );
+          }
+        } else {
+          return ApiResponse.error(
+            'Formato de respuesta inválido',
+            statusCode: response.statusCode,
+          );
+        }
+      } else {
+        final errorMsg =
+            data['message'] as String? ??
+            'Error al obtener reportes (Status: ${response.statusCode})';
+
+        return ApiResponse.error(errorMsg, statusCode: response.statusCode);
+      }
+    } on FormatException catch (e) {
+      return ApiResponse.error('Error al procesar la respuesta: $e');
+    } catch (e) {
+      return ApiResponse.error('Error de conexión: ${e.toString()}');
+    }
+  }
+
+  /// Actualizar el estado de un reporte
+  Future<ApiResponse<ReporteModel>> actualizarEstadoReporte({
+    required int reporteId,
+    required String nuevoEstado,
+  }) async {
+    try {
+      // Validar estados permitidos (deben coincidir con el ENUM de la BD)
+      const estadosValidos = [
+        'pendiente',
+        'en_proceso', // Con guión bajo, no espacio
+        'resuelto',
+        'cerrado', // No 'rechazado'
+      ];
+      if (!estadosValidos.contains(nuevoEstado.toLowerCase())) {
+        return ApiResponse.error(
+          'Estado no válido. Valores permitidos: ${estadosValidos.join(", ")}',
+        );
+      }
+
+      final endpoint =
+          '${ApiConstants.reportesActualizarEstado}/estado/$reporteId';
+      final body = {'estado': nuevoEstado.toLowerCase()};
+
+      print('🔄 Actualizando estado del reporte:');
+      print('   Endpoint: $endpoint');
+      print('   Body: $body');
+      print('   Reporte ID: $reporteId');
+      print('   Nuevo Estado: $nuevoEstado');
+
+      final response = await _apiService.put(endpoint, body);
+
+      print('📥 Respuesta del servidor:');
+      print('   Status Code: ${response.statusCode}');
+      print('   Body: ${response.body}');
+
+      if (response.body.isEmpty) {
+        return ApiResponse.error(
+          'Respuesta vacía del servidor',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['code'] == 1) {
+        // El API devuelve el reporte actualizado
+        if (data['data'] != null) {
+          try {
+            final reporteActualizado = ReporteModel.fromJson(
+              data['data'] as Map<String, dynamic>,
+            );
+
+            return ApiResponse.success(
+              reporteActualizado,
+              message:
+                  data['message'] as String? ??
+                  'Estado actualizado correctamente',
+            );
+          } catch (e) {
+            return ApiResponse.error(
+              'Error al procesar el reporte actualizado: $e',
+              statusCode: response.statusCode,
+            );
+          }
+        } else {
+          return ApiResponse.error(
+            'Formato de respuesta inválido',
+            statusCode: response.statusCode,
+          );
+        }
+      } else {
+        final errorMsg =
+            data['message'] as String? ??
+            'Error al actualizar estado (Status: ${response.statusCode})';
+        return ApiResponse.error(errorMsg, statusCode: response.statusCode);
+      }
+    } on FormatException catch (e) {
+      return ApiResponse.error('Error al procesar la respuesta: $e');
+    } catch (e) {
       return ApiResponse.error('Error de conexión: ${e.toString()}');
     }
   }
