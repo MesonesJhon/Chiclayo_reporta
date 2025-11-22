@@ -20,6 +20,7 @@ class AdminReportesViewModel extends ChangeNotifier {
 
   // Getters
   List<ReporteModel> get reportes => _reportesFiltrados;
+  List<ReporteModel> get todosReportes => _todosReportes;
   bool get isLoading => _isLoading;
   String get error => _error;
   String get filtroEstado => _filtroEstado;
@@ -244,4 +245,17 @@ class AdminReportesViewModel extends ChangeNotifier {
 
   int get reportesPrioridadBaja =>
       _todosReportes.where((r) => r.prioridad.toLowerCase() == 'baja').length;
+
+  List<ReporteModel> get listaReportesPrioridadAlta {
+    final lista = _todosReportes
+        .where((r) => r.prioridad.toLowerCase() == 'alta')
+        .toList();
+    // Ordenar por fecha descendente (más reciente primero)
+    lista.sort((a, b) {
+      final fechaA = a.fechaCreacion ?? DateTime(2000);
+      final fechaB = b.fechaCreacion ?? DateTime(2000);
+      return fechaB.compareTo(fechaA);
+    });
+    return lista;
+  }
 }

@@ -174,7 +174,7 @@ class _MapaReportesPublicosScreenState
             ),
           if (viewModel.errorMessage.isNotEmpty)
             Positioned(
-              top: 16,
+              top: 80,
               left: 16,
               right: 16,
               child: Container(
@@ -213,7 +213,6 @@ class _MapaReportesPublicosScreenState
           Positioned(
             bottom: 16,
             left: 16,
-            right: 16,
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -227,29 +226,10 @@ class _MapaReportesPublicosScreenState
                   ),
                 ],
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildLeyendaItem(
-                    'Alta',
-                    BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueRed,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  _buildLeyendaItem(
-                    'Media',
-                    BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueOrange,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  _buildLeyendaItem(
-                    'Baja',
-                    BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueGreen,
-                    ),
-                  ),
-                  const Spacer(),
                   Text(
                     '${viewModel.reportes.length} reportes',
                     style: const TextStyle(
@@ -257,60 +237,51 @@ class _MapaReportesPublicosScreenState
                       fontSize: 12,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _buildLeyendaItem('Alta', AppColors.criticalRed),
+                  const SizedBox(height: 4),
+                  _buildLeyendaItem('Media', AppColors.warningYellow),
+                  const SizedBox(height: 4),
+                  _buildLeyendaItem('Baja', AppColors.actionGreen),
                 ],
               ),
             ),
           ),
+          Positioned(
+            top: 16,
+            left: 16,
+            child: FloatingActionButton(
+              onPressed: () {
+                if (_mapController != null) {
+                  _mapController!.animateCamera(
+                    CameraUpdate.newLatLngZoom(_chiclayoCenter, 13),
+                  );
+                }
+              },
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.center_focus_strong),
+              tooltip: 'Centrar en Chiclayo',
+            ),
+          ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_mapController != null) {
-            _mapController!.animateCamera(
-              CameraUpdate.newLatLngZoom(_chiclayoCenter, 13),
-            );
-          }
-        },
-        backgroundColor: AppColors.primaryBlue,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.center_focus_strong),
-        tooltip: 'Centrar en Chiclayo',
       ),
     );
   }
 
-  Widget _buildLeyendaItem(String label, BitmapDescriptor icon) {
+  Widget _buildLeyendaItem(String label, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 20,
           height: 20,
-          decoration: BoxDecoration(
-            color: _getColorFromIcon(icon),
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
         Text(label, style: const TextStyle(fontSize: 12)),
       ],
     );
-  }
-
-  Color _getColorFromIcon(BitmapDescriptor icon) {
-    // Esta es una aproximación, ya que no podemos obtener el color directamente
-    // del BitmapDescriptor. En producción, podrías usar un mapa de colores.
-    if (icon ==
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)) {
-      return Colors.red;
-    } else if (icon ==
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange)) {
-      return Colors.orange;
-    } else if (icon ==
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)) {
-      return Colors.green;
-    }
-    return Colors.blue;
   }
 }
 

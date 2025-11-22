@@ -15,7 +15,9 @@ import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
 
 class IncidentMapWidget extends StatefulWidget {
-  const IncidentMapWidget({super.key});
+  final bool showLegend;
+
+  const IncidentMapWidget({super.key, this.showLegend = true});
 
   @override
   State<IncidentMapWidget> createState() => _IncidentMapWidgetState();
@@ -303,7 +305,7 @@ class _IncidentMapWidgetState extends State<IncidentMapWidget> {
                 : _chiclayoCenter,
             zoom: 13,
           ),
-          markers: _buildMarkers(viewModel.reportes),
+          markers: _buildMarkers(viewModel.todosReportes),
           polylines: _buildPolylines(),
           myLocationEnabled: true,
           myLocationButtonEnabled: true,
@@ -330,8 +332,9 @@ class _IncidentMapWidgetState extends State<IncidentMapWidget> {
             ),
           ),
         if (_routeInfo != null && _selectedReporte != null)
-          _buildRouteInfoCard(),
-        _buildPriorityLegend(),
+          _buildRouteInfoCard()
+        else if (widget.showLegend)
+          _buildPriorityLegend(viewModel),
       ],
     );
   }
@@ -422,49 +425,55 @@ class _IncidentMapWidgetState extends State<IncidentMapWidget> {
     );
   }
 
-  Widget _buildPriorityLegend() {
+  Widget _buildPriorityLegend(AdminReportesViewModel viewModel) {
     return Positioned(
-      top: 16,
-      right: 16,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Prioridad',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              _buildLegendItem('Alta', Colors.red),
-              _buildLegendItem('Media', Colors.orange),
-              _buildLegendItem('Baja', Colors.green),
-            ],
-          ),
+      bottom: 16,
+      left: 16,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${viewModel.todosReportes.length} reportes',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            _buildLegendItem('Alta', AppColors.criticalRed),
+            const SizedBox(height: 4),
+            _buildLegendItem('Media', AppColors.warningYellow),
+            const SizedBox(height: 4),
+            _buildLegendItem('Baja', AppColors.actionGreen),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildLegendItem(String label, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
     );
   }
 }

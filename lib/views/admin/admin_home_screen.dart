@@ -757,7 +757,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: const IncidentMapWidget(),
+            child: const IncidentMapWidget(showLegend: false),
           ),
         ),
       ],
@@ -974,41 +974,70 @@ class _AdminHomeScreenState extends State<AdminHomeScreen>
         ),
         const SizedBox(height: 12),
         // Usar Column en lugar de ListView.builder para evitar overflow
-        Column(
-          children: [
-            _CriticalReportItem(
-              data: _CriticalReportData(
-                'Bache crítico en Av. Balta',
-                'Vía Principal',
-                'ALTA',
-                'Hace 6h',
-                AppColors.criticalRed,
-                Icons.map_rounded,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _CriticalReportItem(
-              data: _CriticalReportData(
-                'Semáforo fuera de servicio',
-                'Intersección Balta-Leguía',
-                'URGENTE',
-                'Hace 3h',
-                AppColors.criticalRed,
-                Icons.traffic_rounded,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _CriticalReportItem(
-              data: _CriticalReportData(
-                'Inundación en parque',
-                'Parque Principal',
-                'MEDIA',
-                'Hace 1d',
-                AppColors.warningYellow,
-                Icons.water_damage_rounded,
-              ),
-            ),
-          ],
+        Consumer<AdminReportesViewModel>(
+          builder: (context, viewModel, child) {
+            final criticalReports = viewModel.listaReportesPrioridadAlta
+                .take(5)
+                .toList();
+
+            if (criticalReports.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline, color: Colors.green[600]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'No hay reportes críticos pendientes',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: criticalReports.map((reporte) {
+                // Calcular tiempo transcurrido
+                String timeAgo = 'Reciente';
+                if (reporte.fechaCreacion != null) {
+                  final difference = DateTime.now().difference(
+                    reporte.fechaCreacion!,
+                  );
+                  if (difference.inDays > 0) {
+                    timeAgo = 'Hace ${difference.inDays}d';
+                  } else if (difference.inHours > 0) {
+                    timeAgo = 'Hace ${difference.inHours}h';
+                  } else {
+                    timeAgo = 'Hace ${difference.inMinutes}m';
+                  }
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: _CriticalReportItem(
+                    data: _CriticalReportData(
+                      reporte.titulo,
+                      reporte.ubicacion?.direccion ?? 'Sin dirección',
+                      reporte.prioridad.toUpperCase(),
+                      timeAgo,
+                      AppColors.criticalRed,
+                      Icons.warning_amber_rounded,
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );

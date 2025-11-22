@@ -15,7 +15,7 @@ class AdminMapaIncidentesScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundWhite,
       appBar: _buildAppBar(viewModel),
-      body: const IncidentMapWidget(),
+      body: const IncidentMapWidget(showLegend: true),
     );
   }
 
