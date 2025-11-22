@@ -75,59 +75,65 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
-        child: SingleChildScrollView(
-          child: SizedBox(
-            height: size.height,
-            child: Stack(
-              children: [
-                // Background decoration - Elementos más sutiles
-                Positioned(
-                  top: -size.width * 0.15,
-                  right: -size.width * 0.05,
-                  child: Container(
-                    width: size.width * 0.4,
-                    height: size.width * 0.4,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: -size.width * 0.2,
-                  left: -size.width * 0.1,
-                  child: Container(
-                    width: size.width * 0.6,
-                    height: size.width * 0.6,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-
-                // Content
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Stack(
                     children: [
-                      // Header with Logo
-                      _buildHeader(),
-                      const SizedBox(height: 40),
+                      // Background decoration - Elementos más sutiles
+                      Positioned(
+                        top: -size.width * 0.15,
+                        right: -size.width * 0.05,
+                        child: Container(
+                          width: size.width * 0.4,
+                          height: size.width * 0.4,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -size.width * 0.2,
+                        left: -size.width * 0.1,
+                        child: Container(
+                          width: size.width * 0.6,
+                          height: size.width * 0.6,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.04),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
 
-                      // Login Card
-                      _buildLoginCard(authViewModel, context),
-                      const SizedBox(height: 20),
+                      // Content
+                      Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Header with Logo
+                            _buildHeader(),
+                            const SizedBox(height: 40),
 
-                      // Footer
-                      _buildFooter(context),
+                            // Login Card
+                            _buildLoginCard(authViewModel, context),
+                            const SizedBox(height: 20),
+
+                            // Footer
+                            _buildFooter(context),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -248,56 +254,38 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Remember me and Forgot password
+            // Remember me
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _rememberMe,
-                      onChanged: (value) {
-                        setState(() {
-                          _rememberMe = value ?? false;
-                        });
-                        // Si se desactiva, limpiar el DNI guardado
-                        if (!_rememberMe) {
-                          _clearRememberedDni();
-                        }
-                      },
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      activeColor: AppColors.primaryBlue,
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _rememberMe = !_rememberMe;
-                        });
-                        if (!_rememberMe) {
-                          _clearRememberedDni();
-                        }
-                      },
-                      child: Text(
-                        'Recordarme',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
+                Checkbox(
+                  value: _rememberMe,
+                  onChanged: (value) {
+                    setState(() {
+                      _rememberMe = value ?? false;
+                    });
+                    // Si se desactiva, limpiar el DNI guardado
+                    if (!_rememberMe) {
+                      _clearRememberedDni();
+                    }
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  activeColor: AppColors.primaryBlue,
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/forgot_password');
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _rememberMe = !_rememberMe;
+                    });
+                    if (!_rememberMe) {
+                      _clearRememberedDni();
+                    }
                   },
                   child: Text(
-                    '¿Olvidaste tu contraseña?',
+                    'Recordarme',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.primaryBlue,
-                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -307,11 +295,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
             // Error Message
             if (authViewModel.errorMessage.isNotEmpty)
-              _buildErrorWidget(authViewModel.errorMessage),
-            const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20.0),
+                child: _buildErrorWidget(authViewModel.errorMessage),
+              ),
 
             // Login Button
             _buildLoginButton(authViewModel, context),
+
+            const SizedBox(height: 16),
+
+            // Forgot Password
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/forgot_password');
+                },
+                child: Text(
+                  '¿Olvidaste tu contraseña?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.primaryBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
